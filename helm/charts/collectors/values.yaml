@@ -277,19 +277,6 @@ deployment:
         # Annotations
         annotations: []
 
-  # Specific collector extension configuration
-  extensions:
-    # Memory ballast
-    memory_ballast:
-      # Receiver collectors
-      receiver:
-        # Size in percentage
-        size_in_percentage: 20
-      # Sampler collectors
-      sampler:
-        # Size in percentage
-        size_in_percentage: 20
-
   # New Relic account configuration
   # -> If the global New Relic configuration is enabled, this section will be ignored
   newrelic:
@@ -462,13 +449,6 @@ daemonset:
       labels: []
       # Annotations
       annotations: []
-
-  # Specific collector extension configuration
-  extensions:
-    # Memory ballast
-    memory_ballast:
-      # Size in percentage
-      size_in_percentage: 20
 
   # Log tailing & parsing rules
   filelog:
@@ -954,12 +934,6 @@ statefulset:
       # Annotations
       annotations: []
 
-  # Specific collector extension configuration
-  extensions:
-    # Memory ballast
-    memory_ballast:
-      # Size in percentage
-      size_in_percentage: 20
 
   # New Relic account configuration
   # -> If the global New Relic configuration is enabled, this section will be ignored
@@ -1156,12 +1130,6 @@ singleton:
         # - otelcol_exporter_refused_spans
         # - otelcol_exporter_refused_log_records
 
-  # Specific collector extension configuration
-  extensions:
-    # Memory ballast
-    memory_ballast:
-      # Size in percentage
-      size_in_percentage: 20
 
   # New Relic account configuration
   # -> If the global New Relic configuration is enabled, this section will be ignored

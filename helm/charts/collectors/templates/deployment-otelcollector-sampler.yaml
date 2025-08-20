@@ -130,7 +130,6 @@ spec:
           - key: k8s.cluster.name
             value: {{ .Values.clusterName }}
             action: upsert
-
       attributes/self:
         actions:
           - key: otelcollector.type
@@ -171,24 +170,18 @@ spec:
       {{- range $teamName, $teamInfo := $teams }}
         {{- if ne $teamInfo.ignore true }}
       otlphttp/{{ $teamName }}:
-        endpoint: ${{ $teamName }}_endpoint
+        endpoint: {{ "${" }}{{ $teamName }}_endpoint}
         tls:
           insecure: false
         headers:
-          api-key: ${{ $teamName }}_licenseKey
+          api-key: {{ "${" }}{{ $teamName }}_licenseKey}
         {{- end }}
       {{- end }}
 
-      logging:
+      debug:
         verbosity: detailed
 
-    extensions:
-      memory_ballast:
-        size_in_percentage: {{ .Values.deployment.extensions.memory_ballast.sampler.size_in_percentage }}
-
     service:
-      extensions:
-        - memory_ballast
       pipelines:
         metrics/self:
           receivers:
@@ -220,9 +213,4 @@ spec:
           {{- end }}
         {{- end }}
 
-      telemetry:
-        # logs:
-        #   level: DEBUG
-        metrics:
-          address: 127.0.0.1:{{ .Values.deployment.ports.prometheus.targetPort }}
 {{- end -}}
