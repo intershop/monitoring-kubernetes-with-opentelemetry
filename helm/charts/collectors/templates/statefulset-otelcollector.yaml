@@ -596,13 +596,13 @@ spec:
             value: statefulset
             action: upsert
           - key: k8s.node.name
-            value: $MY_NODE_NAME
+            value: ${MY_NODE_NAME}
             action: upsert
           - key: k8s.namespace.name
-            value: $MY_NAMESPACE_NAME
+            value: ${MY_NAMESPACE_NAME}
             action: upsert
           - key: k8s.pod.name
-            value: $MY_POD_NAME
+            value: ${MY_POD_NAME}
             action: upsert
 
       {{- range $teamName, $teamInfo := $teams }}

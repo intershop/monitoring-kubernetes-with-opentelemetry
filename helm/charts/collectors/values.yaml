@@ -95,7 +95,7 @@ deployment:
   # Image
   image:
     # Repository
-    repository: otel/opentelemetry-collector-contrib
+    repository: otel/opentelemetry-collector-k8s
     # Image pull policy
     pullPolicy: IfNotPresent
     # Image tag
@@ -344,7 +344,7 @@ daemonset:
   # Image
   image:
     # Repository
-    repository: otel/opentelemetry-collector-contrib
+    repository: otel/opentelemetry-collector-k8s
     # Image pull policy
     pullPolicy: IfNotPresent
     # Image tag
@@ -581,7 +581,7 @@ statefulset:
   # Image
   image:
     # Repository
-    repository: otel/opentelemetry-collector-contrib
+    repository: otel/opentelemetry-collector-k8s
     # Image pull policy
     pullPolicy: IfNotPresent
     # Image tag
@@ -1002,7 +1002,7 @@ singleton:
   # Image
   image:
     # Repository
-    repository: otel/opentelemetry-collector-contrib
+    repository: otel/opentelemetry-collector-k8s
     # Image pull policy
     pullPolicy: IfNotPresent
     # Image tag
