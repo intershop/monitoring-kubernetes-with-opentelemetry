@@ -538,6 +538,11 @@ spec:
               enabled: false
             azure.resourcegroup.name:
               enabled: false
+      transform/prepare:
+        metric_statements:
+          - statements:
+              # copy service.name to scraper.job to replace filtering functionality
+              - set(resource.attributes["scraper.job"], resource.attributes["service.name"])
 
       k8sattributes:
         extract:
@@ -655,6 +660,7 @@ spec:
           processors:
             - memory_limiter
             - resourcedetection
+            - transform/prepare
             - k8sattributes
             - attributes
             - resource
@@ -673,6 +679,7 @@ spec:
           processors:
             - memory_limiter
             - resourcedetection
+            - transform/prepare
             - k8sattributes
             - attributes
             - resource

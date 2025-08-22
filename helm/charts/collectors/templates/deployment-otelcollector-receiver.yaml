@@ -125,6 +125,11 @@ spec:
           http: {}
 
     processors:
+      transform/prepare:
+        metric_statements:
+          - statements:
+              # copy service.name to scraper.job to replace filtering functionality
+              - set(resource.attributes["scraper.job"], resource.attributes["service.name"])
       k8sattributes:
         extract:
           metadata:
@@ -240,6 +245,7 @@ spec:
             - prometheus/self
           processors:
             - memory_limiter
+            - transform/prepare
             - k8sattributes
             - attributes
             - attributes/self
@@ -256,6 +262,7 @@ spec:
             - otlp
           processors:
             - memory_limiter
+            - transform/prepare
             - k8sattributes
             - attributes
           {{- if ne (len $teamInfo.namespaces) 0 }}

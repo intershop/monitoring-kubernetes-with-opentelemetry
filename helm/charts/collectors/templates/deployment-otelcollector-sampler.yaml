@@ -125,6 +125,11 @@ spec:
           http: {}
 
     processors:
+      transform/prepare:
+        metric_statements:
+          - statements:
+              # copy service.name to scraper.job to replace filtering functionality
+              - set(resource.attributes["scraper.job"], resource.attributes["service.name"])
       attributes:
         actions:
           - key: k8s.cluster.name
@@ -195,6 +200,7 @@ spec:
             - prometheus/self
           processors:
             - memory_limiter
+            - transform/prepare
             - attributes
             - attributes/self
             - batch
