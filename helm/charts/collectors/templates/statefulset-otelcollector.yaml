@@ -663,6 +663,7 @@ spec:
           processors:
             - memory_limiter
             - resourcedetection
+            - transform/prepare
             - k8sattributes
             - attributes
             - resource
