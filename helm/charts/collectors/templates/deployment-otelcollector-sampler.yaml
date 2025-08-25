@@ -127,7 +127,8 @@ spec:
     processors:
       transform/prepare:
         metric_statements:
-          - statements:
+          - context: metric
+            statements:
               # copy service.name to scraper.job to replace filtering functionality
               - set(resource.attributes["scraper.job"], resource.attributes["service.name"])
       attributes:
