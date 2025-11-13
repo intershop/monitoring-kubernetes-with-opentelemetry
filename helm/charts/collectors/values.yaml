@@ -441,6 +441,21 @@ daemonset:
         # - otelcol_exporter_refused_spans
         # - otelcol_exporter_refused_log_records
 
+    # Kubelet Stats specific configuration
+    kubeletStats:
+      # Collection interval
+      collectionInterval: 60s
+      # Auth type for kubelet stats endpoint (serviceAccount or tls)
+      authType: serviceAccount
+      # Insecure skip verify for kubelet TLS
+      insecureSkipVerify: true
+      # Metrics to collect from kubelet stats
+      metricGroups:
+        - container
+        - pod
+        - node
+        - volume
+
   # Specific collector processor configuration
   processors:
     # K8s attributes processor labels & annotations config
@@ -766,21 +781,20 @@ statefulset:
       # Scrape interval
       scrapeInterval: 60s
 
-    # cAdvisor specific configuration
-    cAdvisor:
-      # Scrape interval
-      scrapeInterval: 60s
-      # Keeps only the most important metrics and drops the rest of the scraped metrics
-      importantMetrics: []
-        # - container_cpu_usage_seconds_total
-        # - container_memory_usage_bytes
-        # - container_memory_working_set_bytes
-        # - container_memory_rss
-        # - container_memory_swap
-        # - container_fs_reads_total
-        # - container_fs_writes_total
-        # - container_network_receive_bytes_total
-        # - container_network_transmit_bytes_total
+    # Kubelet Stats specific configuration
+    kubeletStats:
+      # Collection interval
+      collectionInterval: 60s
+      # Auth type for kubelet stats endpoint (serviceAccount or tls)
+      authType: serviceAccount
+      # Insecure skip verify for kubelet TLS
+      insecureSkipVerify: true
+      # Metrics to collect from kubelet stats
+      metricGroups:
+        - container
+        - pod
+        - node
+        - volume
 
     # Core DNS specific configuration
     coreDns:

@@ -125,6 +125,15 @@ spec:
                   action: keep
               {{- end }}
 
+      kubeletstats:
+        collection_interval: {{ .Values.daemonset.prometheus.kubeletStats.collectionInterval }}
+        auth_type: {{ .Values.daemonset.prometheus.kubeletStats.authType }}
+        ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        endpoint: "https://localhost:10250"
+        insecure_skip_verify: {{ .Values.daemonset.prometheus.kubeletStats.insecureSkipVerify }}
+        metric_groups: {{ .Values.daemonset.prometheus.kubeletStats.metricGroups | toYaml | nindent 10 }}
+
       {{- with .Values.daemonset.filelog }}
       filelog: {{ toYaml . | nindent 8 }}
       {{- end }}
@@ -245,6 +254,18 @@ spec:
             - k8sattributes
             - attributes
             - attributes/self
+            - batch
+          exporters:
+            - otlphttp/opsteam
+            # - logging
+
+        metrics/kubeletstats:
+          receivers:
+            - kubeletstats
+          processors:
+            - memory_limiter
+            - k8sattributes
+            - attributes
             - batch
           exporters:
             - otlphttp/opsteam
