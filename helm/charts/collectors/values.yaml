@@ -386,6 +386,16 @@ daemonset:
           - 'watch'
           - 'list'
       - apiGroups:
+          - ''
+        resources:
+          - 'nodes'
+          - 'nodes/proxy'
+          - 'nodes/stats'
+          - 'nodes/metrics'
+        verbs:
+          - 'get'
+          - 'list'
+      - apiGroups:
           - 'apps'
         resources:
           - 'replicasets'
@@ -448,6 +458,68 @@ daemonset:
         # - otelcol_exporter_refused_metric_points
         # - otelcol_exporter_refused_spans
         # - otelcol_exporter_refused_log_records
+    
+    # cAdvisor specific configuration
+    cAdvisor:
+      # Scrape interval
+      scrapeInterval: 60s
+      scrapeTimeout: 20s
+      # Keeps only the most important metrics and drops the rest of the scraped metrics
+      importantMetrics: []
+        # - container_cpu_usage_seconds_total
+        # - container_memory_usage_bytes
+        # - container_memory_working_set_bytes
+        # - container_memory_rss
+        # - container_memory_swap
+        # - container_network_receive_bytes_total
+        # - container_network_transmit_bytes_total
+        # - node_cpu_seconds_total
+        # - node_memory_MemAvailable_bytes
+
+  # Kubelet Stats specific configuration
+  kubeletStats:
+    # Collection interval
+    collectionInterval: 60s
+    timeout: 20s
+    # Auth type for kubelet stats endpoint (serviceAccount or tls)
+    authType: serviceAccount
+    # Insecure skip verify for kubelet TLS
+    insecureSkipVerify: true
+    # Metrics to collect from kubelet stats
+    metricGroups:
+      - container
+      - pod
+      - node
+      - volume
+    # Keeps only the most important metrics and drops the rest (original kubeletstats format)
+    importantMetrics: []
+      # - container.cpu.time
+      # - container.memory.working_set
+      # - container.memory.rss
+      # - container.memory.usage
+      # - container.filesystem.available
+      # - container.filesystem.capacity
+      # - container.filesystem.usage
+      # - k8s.pod.cpu.time
+      # - k8s.pod.memory.working_set
+      # - k8s.pod.memory.rss
+      # - k8s.pod.memory.usage
+      # - k8s.pod.network.io
+      # - k8s.pod.network.errors
+      # - k8s.pod.filesystem.available
+      # - k8s.pod.filesystem.capacity
+      # - k8s.pod.filesystem.usage
+      # - k8s.node.cpu.time
+      # - k8s.node.cpu.usage
+      # - k8s.node.memory.available
+      # - k8s.node.memory.working_set
+      # - k8s.node.memory.rss
+      # - k8s.node.memory.usage
+      # - k8s.node.filesystem.available
+      # - k8s.node.filesystem.capacity
+      # - k8s.node.filesystem.usage
+      # - k8s.node.network.io
+      # - k8s.node.network.errors
 
   # Specific collector processor configuration
   processors:
@@ -773,22 +845,6 @@ statefulset:
     nodes:
       # Scrape interval
       scrapeInterval: 60s
-
-    # cAdvisor specific configuration
-    cAdvisor:
-      # Scrape interval
-      scrapeInterval: 60s
-      # Keeps only the most important metrics and drops the rest of the scraped metrics
-      importantMetrics: []
-        # - container_cpu_usage_seconds_total
-        # - container_memory_usage_bytes
-        # - container_memory_working_set_bytes
-        # - container_memory_rss
-        # - container_memory_swap
-        # - container_fs_reads_total
-        # - container_fs_writes_total
-        # - container_network_receive_bytes_total
-        # - container_network_transmit_bytes_total
 
     # Core DNS specific configuration
     coreDns:
