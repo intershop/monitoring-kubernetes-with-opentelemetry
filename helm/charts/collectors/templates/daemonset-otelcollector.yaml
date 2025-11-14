@@ -129,7 +129,7 @@ spec:
         collection_interval: {{ .Values.daemonset.prometheus.kubeletStats.collectionInterval }}
         auth_type: {{ .Values.daemonset.prometheus.kubeletStats.authType }}
         ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-        endpoint: "https://localhost:10250"
+        endpoint: "${MY_NODE_NAME}:10250"
         insecure_skip_verify: {{ .Values.daemonset.prometheus.kubeletStats.insecureSkipVerify }}
         metric_groups: {{ .Values.daemonset.prometheus.kubeletStats.metricGroups | toYaml | nindent 10 }}
 
