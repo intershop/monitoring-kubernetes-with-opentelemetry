@@ -378,6 +378,21 @@ daemonset:
           - 'watch'
           - 'list'
       - apiGroups:
+          - ''
+        resources:
+          - 'nodes'
+          - 'nodes/proxy'
+          - 'nodes/stats'
+        verbs:
+          - 'get'
+          - 'list'
+      - apiGroups:
+          - ''
+        resources:
+          - 'nodes/metrics'
+        verbs:
+          - 'get'
+      - apiGroups:
           - 'apps'
         resources:
           - 'replicasets'
