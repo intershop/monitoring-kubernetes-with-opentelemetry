@@ -149,6 +149,59 @@ spec:
               - delete_key(resource.attributes, "service.namespace")
               - delete_key(resource.attributes, "service.version")
               - delete_key(resource.attributes, "service.instance.id")
+      
+      transform/kubeletstats_to_cadvisor:
+        metric_statements:
+          - context: metric
+            statements:
+            # Transform kubeletstats metric names to cAdvisor-compatible names
+            # CPU metrics
+            - replace_pattern(name, "^k8s\\.container\\.cpu_time$", "container_cpu_usage_seconds_total")
+            - replace_pattern(name, "^k8s\\.node\\.cpu\\.time$", "node_cpu_seconds_total")
+            - replace_pattern(name, "^k8s\\.pod\\.cpu\\.time$", "pod_cpu_usage_seconds_total")
+            
+            # Memory metrics  
+            - replace_pattern(name, "^k8s\\.container\\.memory$", "container_memory_usage_bytes")
+            - replace_pattern(name, "^k8s\\.container\\.memory_working_set$", "container_memory_working_set_bytes")
+            - replace_pattern(name, "^k8s\\.container\\.memory_rss$", "container_memory_rss")
+            - replace_pattern(name, "^k8s\\.container\\.memory_cache$", "container_memory_cache")
+            - replace_pattern(name, "^k8s\\.container\\.memory_swap$", "container_memory_swap")
+            - replace_pattern(name, "^k8s\\.pod\\.memory$", "pod_memory_usage_bytes")
+            - replace_pattern(name, "^k8s\\.pod\\.memory_working_set$", "pod_memory_working_set_bytes")
+            - replace_pattern(name, "^k8s\\.node\\.memory\\.available$", "node_memory_MemAvailable_bytes")
+            - replace_pattern(name, "^k8s\\.node\\.memory\\.total$", "node_memory_MemTotal_bytes")
+            
+            # Filesystem metrics
+            - replace_pattern(name, "^k8s\\.container\\.filesystem\\.reads$", "container_fs_reads_total")
+            - replace_pattern(name, "^k8s\\.container\\.filesystem\\.writes$", "container_fs_writes_total")
+            - replace_pattern(name, "^k8s\\.container\\.filesystem\\.capacity$", "container_fs_limit_bytes")
+            - replace_pattern(name, "^k8s\\.container\\.filesystem\\.usage$", "container_fs_usage_bytes")
+            - replace_pattern(name, "^k8s\\.node\\.filesystem\\.available$", "node_filesystem_avail_bytes")
+            - replace_pattern(name, "^k8s\\.node\\.filesystem\\.capacity$", "node_filesystem_size_bytes")
+            - replace_pattern(name, "^k8s\\.node\\.filesystem\\.usage$", "node_filesystem_usage_bytes")
+            
+            # Network metrics
+            - replace_pattern(name, "^k8s\\.container\\.network\\.rx_bytes$", "container_network_receive_bytes_total")
+            - replace_pattern(name, "^k8s\\.container\\.network\\.tx_bytes$", "container_network_transmit_bytes_total")
+            - replace_pattern(name, "^k8s\\.container\\.network\\.rx_packets$", "container_network_receive_packets_total")
+            - replace_pattern(name, "^k8s\\.container\\.network\\.tx_packets$", "container_network_transmit_packets_total")
+            - replace_pattern(name, "^k8s\\.container\\.network\\.rx_errors$", "container_network_receive_errors_total")
+            - replace_pattern(name, "^k8s\\.container\\.network\\.tx_errors$", "container_network_transmit_errors_total")
+            - replace_pattern(name, "^k8s\\.container\\.network\\.rx_dropped$", "container_network_receive_dropped_total")
+            - replace_pattern(name, "^k8s\\.container\\.network\\.tx_dropped$", "container_network_transmit_dropped_total")
+            
+            # Volume metrics
+            - replace_pattern(name, "^k8s\\.volume\\.capacity$", "container_fs_limit_bytes")
+            - replace_pattern(name, "^k8s\\.volume\\.available$", "container_fs_usage_bytes")
+            - replace_pattern(name, "^k8s\\.volume\\.inodes$", "container_fs_inodes_total")
+            - replace_pattern(name, "^k8s\\.volume\\.inodes_free$", "container_fs_inodes_free")
+            
+          - context: resource
+            statements:
+            # Set service.name to match cAdvisor job name for backward compatibility
+            - set(attributes["service.name"], "kubernetes-nodes-cadvisor")
+            # Ensure proper attribute mapping for cAdvisor compatibility
+            - set(attributes["job"], "kubernetes-nodes-cadvisor") where attributes["service.name"] == "kubernetes-nodes-cadvisor"
       k8sattributes:
         extract:
           metadata:
@@ -215,6 +268,14 @@ spec:
         {{- end }}
       {{- end }}
 
+      {{- if ne (len .Values.daemonset.prometheus.kubeletStats.importantMetrics) 0 }}
+      filter/kubeletstats:
+        error_mode: ignore
+        metrics:
+          metric:
+            - 'name not in [{{ range $index, $metric := .Values.daemonset.prometheus.kubeletStats.importantMetrics }}{{ if ne $index 0 }}, {{ end }}"{{ $metric }}"{{ end }}]'
+      {{- end }}
+
       memory_limiter:
          check_interval: 1s
          limit_percentage: 80
@@ -263,8 +324,12 @@ spec:
             - kubeletstats
           processors:
             - memory_limiter
+            - transform/kubeletstats_to_cadvisor
             - k8sattributes
             - attributes
+          {{- if ne (len .Values.daemonset.prometheus.kubeletStats.importantMetrics) 0 }}
+            - filter/kubeletstats
+          {{- end }}
             - batch
           exporters:
             - otlphttp/opsteam
