@@ -497,9 +497,6 @@ daemonset:
       # - container_network_transmit_bytes_total
       # - node_cpu_seconds_total
       # - node_memory_MemAvailable_bytes
-    # Pipeline control flags
-    sendKubeletstatsFormat: true    # für metrics/kubeletstats
-    sendCadvisorFormat: true    # für metrics/kubeletstats_cadvisor
 
   # Specific collector processor configuration
   processors:
