@@ -126,12 +126,12 @@ spec:
               {{- end }}
 
       kubeletstats:
-        collection_interval: {{ .Values.daemonset.prometheus.kubeletStats.collectionInterval }}
-        auth_type: {{ .Values.daemonset.prometheus.kubeletStats.authType }}
+        collection_interval: {{ .Values.daemonset.kubeletStats.collectionInterval }}
+        auth_type: {{ .Values.daemonset.kubeletStats.authType }}
         ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
         endpoint: "${MY_NODE_NAME}:10250"
-        insecure_skip_verify: {{ .Values.daemonset.prometheus.kubeletStats.insecureSkipVerify }}
-        metric_groups: {{ .Values.daemonset.prometheus.kubeletStats.metricGroups | toYaml | nindent 10 }}
+        insecure_skip_verify: {{ .Values.daemonset.kubeletStats.insecureSkipVerify }}
+        metric_groups: {{ .Values.daemonset.kubeletStats.metricGroups | toYaml | nindent 10 }}
 
       {{- with .Values.daemonset.filelog }}
       filelog: {{ toYaml . | nindent 8 }}
@@ -150,6 +150,7 @@ spec:
               - delete_key(resource.attributes, "service.version")
               - delete_key(resource.attributes, "service.instance.id")
       
+      {{- if eq .Values.daemonset.kubeletStats.enableCadvisorFormat true }}
       transform/kubeletstats_to_cadvisor:
         metric_statements:
           - context: metric
@@ -202,6 +203,7 @@ spec:
             - set(attributes["service.name"], "kubernetes-nodes-cadvisor")
             # Ensure proper attribute mapping for cAdvisor compatibility
             - set(attributes["job"], "kubernetes-nodes-cadvisor") where attributes["service.name"] == "kubernetes-nodes-cadvisor"
+      {{- end }}
       k8sattributes:
         extract:
           metadata:
@@ -268,12 +270,12 @@ spec:
         {{- end }}
       {{- end }}
 
-      {{- if ne (len .Values.daemonset.prometheus.kubeletStats.importantMetrics) 0 }}
+      {{- if ne (len .Values.daemonset.kubeletStats.importantMetrics) 0 }}
       filter/kubeletstats:
         error_mode: ignore
         metrics:
           metric:
-            - 'name not in [{{ range $index, $metric := .Values.daemonset.prometheus.kubeletStats.importantMetrics }}{{ if ne $index 0 }}, {{ end }}"{{ $metric }}"{{ end }}]'
+            - 'name not in [{{ range $index, $metric := .Values.daemonset.kubeletStats.importantMetrics }}{{ if ne $index 0 }}, {{ end }}"{{ $metric }}"{{ end }}]'
       {{- end }}
 
       memory_limiter:
@@ -319,7 +321,22 @@ spec:
             - otlphttp/opsteam
             # - logging
 
+        {{- if eq .Values.daemonset.kubeletStats.enableOriginalFormat true }}
         metrics/kubeletstats:
+          receivers:
+            - kubeletstats
+          processors:
+            - memory_limiter
+            - k8sattributes
+            - attributes
+            - batch
+          exporters:
+            - otlphttp/opsteam
+            # - logging
+        {{- end }}
+
+        {{- if eq .Values.daemonset.kubeletStats.enableCadvisorFormat true }}
+        metrics/kubeletstats_cadvisor:
           receivers:
             - kubeletstats
           processors:
@@ -334,6 +351,7 @@ spec:
           exporters:
             - otlphttp/opsteam
             # - logging
+        {{- end }}
 
         {{- range $teamName, $teamInfo := $teams }}
           {{- if ne $teamInfo.ignore true }}
