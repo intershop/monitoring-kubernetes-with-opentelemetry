@@ -470,8 +470,22 @@ daemonset:
       - pod
       - node
       - volume
-    # Keeps only the most important metrics and drops the rest (after transformation to cAdvisor names)
+    # Keeps only the most important metrics and drops the rest (original kubeletstats format)
     importantMetrics: []
+      # - k8s.container.cpu_time
+      # - k8s.container.memory
+      # - k8s.container.memory_working_set
+      # - k8s.container.memory_rss
+      # - k8s.container.memory_cache
+      # - k8s.container.memory_swap
+      # - k8s.container.filesystem.reads
+      # - k8s.container.filesystem.writes
+      # - k8s.container.network.rx_bytes
+      # - k8s.container.network.tx_bytes
+      # - k8s.node.cpu.time
+      # - k8s.node.memory.available
+    # Keeps only the most important metrics and drops the rest (cAdvisor format after transformation)
+    importantMetricsCadvisor: []
       # - container_cpu_usage_seconds_total
       # - container_memory_usage_bytes
       # - container_memory_working_set_bytes
@@ -484,13 +498,8 @@ daemonset:
       # - node_cpu_seconds_total
       # - node_memory_MemAvailable_bytes
     # Pipeline control flags
-    sendOriginalFormat: true    # für metrics/kubeletstats
+    sendKubeletstatsFormat: true    # für metrics/kubeletstats
     sendCadvisorFormat: true    # für metrics/kubeletstats_cadvisor
-    # Enable original OpenTelemetry format pipeline (k8s.container.*, k8s.pod.*, etc.)
-    enableOriginalFormat: true
-    # Enable cAdvisor-compatible format pipeline (container_*_total, etc.)
-    enableCadvisorFormat: true
-      # - node_filesystem_avail_bytes
 
   # Specific collector processor configuration
   processors:

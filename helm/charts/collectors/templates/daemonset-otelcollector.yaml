@@ -149,8 +149,8 @@ spec:
               - delete_key(resource.attributes, "service.namespace")
               - delete_key(resource.attributes, "service.version")
               - delete_key(resource.attributes, "service.instance.id")
-      
-      {{- if eq .Values.daemonset.kubeletStats.enableCadvisorFormat true }}
+
+      {{- if eq .Values.daemonset.kubeletStats.sendCadvisorFormat true }}
       transform/kubeletstats_to_cadvisor:
         metric_statements:
           - context: metric
@@ -177,7 +177,7 @@ spec:
             - replace_pattern(name, "^k8s\\.container\\.filesystem\\.writes$", "container_fs_writes_total")
             - replace_pattern(name, "^k8s\\.container\\.filesystem\\.capacity$", "container_fs_limit_bytes")
             - replace_pattern(name, "^k8s\\.container\\.filesystem\\.usage$", "container_fs_usage_bytes")
-            - replace_pattern(name, "^k8s\\.node\\.filesystem\\.available$", "node_filesystem_avail_bytes")
+            - replace_pattern(name, "^k8s\\.node\\.filesystem\\.available$", "node_filesystem_avail_bytes")cadvisor
             - replace_pattern(name, "^k8s\\.node\\.filesystem\\.capacity$", "node_filesystem_size_bytes")
             - replace_pattern(name, "^k8s\\.node\\.filesystem\\.usage$", "node_filesystem_usage_bytes")
             
@@ -270,12 +270,22 @@ spec:
         {{- end }}
       {{- end }}
 
-      {{- if ne (len .Values.daemonset.kubeletStats.importantMetrics) 0 }}
-      filter/kubeletstats:
+      {{- if and (eq .Values.daemonset.kubeletStats.sendKubeletstatsFormat true) (ne (len .Values.daemonset.kubeletStats.importantMetrics) 0) }}
+      filter/kubeletstats_original:
         error_mode: ignore
         metrics:
           metric:
+            # Filter for original kubeletstats format (k8s.container.*, k8s.pod.*, etc.)
             - 'name not in [{{ range $index, $metric := .Values.daemonset.kubeletStats.importantMetrics }}{{ if ne $index 0 }}, {{ end }}"{{ $metric }}"{{ end }}]'
+      {{- end }}
+
+      {{- if and (eq .Values.daemonset.kubeletStats.sendCadvisorFormat true) (ne (len .Values.daemonset.kubeletStats.importantMetricsCadvisor) 0) }}
+      filter/kubeletstats_cadvisor:
+        error_mode: ignore
+        metrics:
+          metric:
+            # Filter for cAdvisor format (container_*_total, node_*, etc.)
+            - 'name not in [{{ range $index, $metric := .Values.daemonset.kubeletStats.importantMetricsCadvisor }}{{ if ne $index 0 }}, {{ end }}"{{ $metric }}"{{ end }}]'
       {{- end }}
 
       memory_limiter:
@@ -321,7 +331,7 @@ spec:
             - otlphttp/opsteam
             # - logging
 
-        {{- if eq .Values.daemonset.kubeletStats.enableOriginalFormat true }}
+        {{- if eq .Values.daemonset.kubeletStats.sendKubeletstatsFormat true }}
         metrics/kubeletstats:
           receivers:
             - kubeletstats
@@ -329,13 +339,16 @@ spec:
             - memory_limiter
             - k8sattributes
             - attributes
+          {{- if ne (len .Values.daemonset.kubeletStats.importantMetrics) 0 }}
+            - filter/kubeletstats_original
+          {{- end }}
             - batch
           exporters:
             - otlphttp/opsteam
             # - logging
         {{- end }}
 
-        {{- if eq .Values.daemonset.kubeletStats.enableCadvisorFormat true }}
+        {{- if eq .Values.daemonset.kubeletStats.sendCadvisorFormat true }}
         metrics/kubeletstats_cadvisor:
           receivers:
             - kubeletstats
@@ -344,8 +357,8 @@ spec:
             - transform/kubeletstats_to_cadvisor
             - k8sattributes
             - attributes
-          {{- if ne (len .Values.daemonset.prometheus.kubeletStats.importantMetrics) 0 }}
-            - filter/kubeletstats
+          {{- if ne (len .Values.daemonset.kubeletStats.importantMetricsCadvisor) 0 }}
+            - filter/kubeletstats_cadvisor
           {{- end }}
             - batch
           exporters:
