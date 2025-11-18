@@ -274,10 +274,8 @@ spec:
         error_mode: ignore
         metrics:
           metric:
-            # Filter for original kubeletstats format (k8s.container.*, k8s.pod.*, etc.)
-            {{- range $metric := .Values.daemonset.kubeletStats.importantMetrics }}
-            - 'name != "{{ $metric }}"'
-            {{- end }}
+            # Filter for original kubeletstats format - drop metrics NOT matching the important list (keep only important ones)
+            - 'not IsMatch(name, "^({{- range $index, $metric := .Values.daemonset.kubeletStats.importantMetrics -}}{{- if ne $index 0 }}|{{ end }}{{ $metric | replace "." "\\." | replace "*" ".*" }}{{- end }})$")'
       {{- end }}
 
       {{- if ne (len .Values.daemonset.kubeletStats.importantMetricsCadvisor) 0 }}
@@ -285,10 +283,8 @@ spec:
         error_mode: ignore
         metrics:
           metric:
-            # Filter for cAdvisor format - keep only metrics NOT in the important list
-            {{- range $metric := .Values.daemonset.kubeletStats.importantMetricsCadvisor }}
-            - 'name != "{{ $metric }}"'
-            {{- end }}
+            # Filter for cAdvisor format - drop metrics NOT matching the important list (keep only important ones)
+            - 'not IsMatch(name, "^({{- range $index, $metric := .Values.daemonset.kubeletStats.importantMetricsCadvisor -}}{{- if ne $index 0 }}|{{ end }}{{ $metric | replace "." "\\." | replace "*" ".*" }}{{- end }})$")'
       {{- end }}
 
       memory_limiter:
