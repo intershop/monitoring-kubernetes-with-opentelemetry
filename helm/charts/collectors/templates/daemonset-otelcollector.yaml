@@ -275,7 +275,7 @@ spec:
         metrics:
           metric:
             # Filter for original kubeletstats format (k8s.container.*, k8s.pod.*, etc.)
-            - 'not name in [{{ range $index, $metric := .Values.daemonset.kubeletStats.importantMetrics }}{{ if ne $index 0 }}, {{ end }}"{{ $metric }}"{{ end }}]'
+            - 'not name in [{{- range $index, $metric := .Values.daemonset.kubeletStats.importantMetrics -}}{{- if ne $index 0 }}, {{ end }}"{{ $metric }}"{{- end }}]'
       {{- end }}
 
       {{- if ne (len .Values.daemonset.kubeletStats.importantMetricsCadvisor) 0 }}
@@ -284,8 +284,7 @@ spec:
         metrics:
           metric:
             # Filter for cAdvisor format (container_*_total, node_*, etc.)
-            - 'not name in [{{ range $index, $metric := .Values.daemonset.kubeletStats.importantMetricsCadvisor }}{{ if ne $index 0 }}, {{ end }}"{{ $metric }}"{{ end }}]'
-            
+            - 'not name in [{{- range $index, $metric := .Values.daemonset.kubeletStats.importantMetricsCadvisor -}}{{- if ne $index 0 }}, {{ end }}"{{ $metric }}"{{- end }}]'
       {{- end }}
 
       memory_limiter:
