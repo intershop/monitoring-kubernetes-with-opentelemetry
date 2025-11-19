@@ -181,15 +181,11 @@ spec:
             - replace_pattern(name, "^k8s\\.node\\.filesystem\\.capacity$", "node_filesystem_size_bytes")
             - replace_pattern(name, "^k8s\\.node\\.filesystem\\.usage$", "node_filesystem_usage_bytes")
             
-            # Network metrics
-            - replace_pattern(name, "^k8s\\.pod\\.network\\.io$", "container_network_receive_bytes_total") where attributes["direction"] == "receive"
-            - replace_pattern(name, "^k8s\\.pod\\.network\\.io$", "container_network_transmit_bytes_total") where attributes["direction"] == "transmit"
-            - replace_pattern(name, "^k8s\\.pod\\.network\\.errors$", "container_network_receive_errors_total") where attributes["direction"] == "receive"
-            - replace_pattern(name, "^k8s\\.pod\\.network\\.errors$", "container_network_transmit_errors_total") where attributes["direction"] == "transmit"
-            - replace_pattern(name, "^k8s\\.node\\.network\\.io$", "node_network_receive_bytes_total") where attributes["direction"] == "receive"
-            - replace_pattern(name, "^k8s\\.node\\.network\\.io$", "node_network_transmit_bytes_total") where attributes["direction"] == "transmit"
-            - replace_pattern(name, "^k8s\\.node\\.network\\.errors$", "node_network_receive_errs_total") where attributes["direction"] == "receive"
-            - replace_pattern(name, "^k8s\\.node\\.network\\.errors$", "node_network_transmit_errs_total") where attributes["direction"] == "transmit"
+            # Network metrics - simplified without attribute conditions for now
+            - replace_pattern(name, "^k8s\\.pod\\.network\\.io$", "container_network_io_bytes_total")
+            - replace_pattern(name, "^k8s\\.pod\\.network\\.errors$", "container_network_errors_total")
+            - replace_pattern(name, "^k8s\\.node\\.network\\.io$", "node_network_io_bytes_total")
+            - replace_pattern(name, "^k8s\\.node\\.network\\.errors$", "node_network_errors_total")
             
             # Volume metrics
             - replace_pattern(name, "^k8s\\.volume\\.capacity$", "container_fs_limit_bytes")
