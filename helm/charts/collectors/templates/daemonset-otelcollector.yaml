@@ -156,45 +156,48 @@ spec:
             statements:
             # Transform kubeletstats metric names to cAdvisor-compatible names
             # CPU metrics
-            - replace_pattern(name, "^k8s\\.container\\.cpu_time$", "container_cpu_usage_seconds_total")
+            - replace_pattern(name, "^container\\.cpu\\.time$", "container_cpu_usage_seconds_total")
             - replace_pattern(name, "^k8s\\.node\\.cpu\\.time$", "node_cpu_seconds_total")
             - replace_pattern(name, "^k8s\\.pod\\.cpu\\.time$", "pod_cpu_usage_seconds_total")
             
             # Memory metrics  
-            - replace_pattern(name, "^k8s\\.container\\.memory$", "container_memory_usage_bytes")
-            - replace_pattern(name, "^k8s\\.container\\.memory_working_set$", "container_memory_working_set_bytes")
-            - replace_pattern(name, "^k8s\\.container\\.memory_rss$", "container_memory_rss")
-            - replace_pattern(name, "^k8s\\.container\\.memory_cache$", "container_memory_cache")
-            - replace_pattern(name, "^k8s\\.container\\.memory_swap$", "container_memory_swap")
-            - replace_pattern(name, "^k8s\\.pod\\.memory$", "pod_memory_usage_bytes")
-            - replace_pattern(name, "^k8s\\.pod\\.memory_working_set$", "pod_memory_working_set_bytes")
+            - replace_pattern(name, "^container\\.memory\\.usage$", "container_memory_usage_bytes")
+            - replace_pattern(name, "^container\\.memory\\.working_set$", "container_memory_working_set_bytes")
+            - replace_pattern(name, "^container\\.memory\\.rss$", "container_memory_rss")
+            - replace_pattern(name, "^container\\.memory\\.cache$", "container_memory_cache")
+            - replace_pattern(name, "^container\\.memory\\.swap$", "container_memory_swap")
+            - replace_pattern(name, "^k8s\\.pod\\.memory\\.usage$", "pod_memory_usage_bytes")
+            - replace_pattern(name, "^k8s\\.pod\\.memory\\.working_set$", "pod_memory_working_set_bytes")
             - replace_pattern(name, "^k8s\\.node\\.memory\\.available$", "node_memory_MemAvailable_bytes")
-            - replace_pattern(name, "^k8s\\.node\\.memory\\.total$", "node_memory_MemTotal_bytes")
+            - replace_pattern(name, "^k8s\\.node\\.memory\\.usage$", "node_memory_MemTotal_bytes")
             
             # Filesystem metrics
-            - replace_pattern(name, "^k8s\\.container\\.filesystem\\.reads$", "container_fs_reads_total")
-            - replace_pattern(name, "^k8s\\.container\\.filesystem\\.writes$", "container_fs_writes_total")
-            - replace_pattern(name, "^k8s\\.container\\.filesystem\\.capacity$", "container_fs_limit_bytes")
-            - replace_pattern(name, "^k8s\\.container\\.filesystem\\.usage$", "container_fs_usage_bytes")
+            - replace_pattern(name, "^container\\.filesystem\\.reads$", "container_fs_reads_total")
+            - replace_pattern(name, "^container\\.filesystem\\.writes$", "container_fs_writes_total")
+            - replace_pattern(name, "^container\\.filesystem\\.capacity$", "container_fs_limit_bytes")
+            - replace_pattern(name, "^container\\.filesystem\\.usage$", "container_fs_usage_bytes")
+            - replace_pattern(name, "^container\\.filesystem\\.available$", "container_fs_available_bytes")
             - replace_pattern(name, "^k8s\\.node\\.filesystem\\.available$", "node_filesystem_avail_bytes")
             - replace_pattern(name, "^k8s\\.node\\.filesystem\\.capacity$", "node_filesystem_size_bytes")
             - replace_pattern(name, "^k8s\\.node\\.filesystem\\.usage$", "node_filesystem_usage_bytes")
             
             # Network metrics
-            - replace_pattern(name, "^k8s\\.container\\.network\\.rx_bytes$", "container_network_receive_bytes_total")
-            - replace_pattern(name, "^k8s\\.container\\.network\\.tx_bytes$", "container_network_transmit_bytes_total")
-            - replace_pattern(name, "^k8s\\.container\\.network\\.rx_packets$", "container_network_receive_packets_total")
-            - replace_pattern(name, "^k8s\\.container\\.network\\.tx_packets$", "container_network_transmit_packets_total")
-            - replace_pattern(name, "^k8s\\.container\\.network\\.rx_errors$", "container_network_receive_errors_total")
-            - replace_pattern(name, "^k8s\\.container\\.network\\.tx_errors$", "container_network_transmit_errors_total")
-            - replace_pattern(name, "^k8s\\.container\\.network\\.rx_dropped$", "container_network_receive_dropped_total")
-            - replace_pattern(name, "^k8s\\.container\\.network\\.tx_dropped$", "container_network_transmit_dropped_total")
+            - replace_pattern(name, "^k8s\\.pod\\.network\\.io$", "container_network_receive_bytes_total") where attributes["direction"] == "receive"
+            - replace_pattern(name, "^k8s\\.pod\\.network\\.io$", "container_network_transmit_bytes_total") where attributes["direction"] == "transmit"
+            - replace_pattern(name, "^k8s\\.pod\\.network\\.errors$", "container_network_receive_errors_total") where attributes["direction"] == "receive"
+            - replace_pattern(name, "^k8s\\.pod\\.network\\.errors$", "container_network_transmit_errors_total") where attributes["direction"] == "transmit"
+            - replace_pattern(name, "^k8s\\.node\\.network\\.io$", "node_network_receive_bytes_total") where attributes["direction"] == "receive"
+            - replace_pattern(name, "^k8s\\.node\\.network\\.io$", "node_network_transmit_bytes_total") where attributes["direction"] == "transmit"
+            - replace_pattern(name, "^k8s\\.node\\.network\\.errors$", "node_network_receive_errs_total") where attributes["direction"] == "receive"
+            - replace_pattern(name, "^k8s\\.node\\.network\\.errors$", "node_network_transmit_errs_total") where attributes["direction"] == "transmit"
             
             # Volume metrics
             - replace_pattern(name, "^k8s\\.volume\\.capacity$", "container_fs_limit_bytes")
-            - replace_pattern(name, "^k8s\\.volume\\.available$", "container_fs_usage_bytes")
+            - replace_pattern(name, "^k8s\\.volume\\.available$", "container_fs_available_bytes")
+            - replace_pattern(name, "^k8s\\.volume\\.usage$", "container_fs_usage_bytes")
             - replace_pattern(name, "^k8s\\.volume\\.inodes$", "container_fs_inodes_total")
             - replace_pattern(name, "^k8s\\.volume\\.inodes_free$", "container_fs_inodes_free")
+            - replace_pattern(name, "^k8s\\.volume\\.inodes_used$", "container_fs_inodes_used")
             
           - context: resource
             statements:
