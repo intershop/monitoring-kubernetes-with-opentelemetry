@@ -171,9 +171,7 @@ spec:
             - replace_pattern(name, "^k8s\\.node\\.memory\\.available$", "node_memory_MemAvailable_bytes")
             - replace_pattern(name, "^k8s\\.node\\.memory\\.usage$", "node_memory_MemTotal_bytes")
             
-            # Filesystem metrics
-            - replace_pattern(name, "^container\\.filesystem\\.reads$", "container_fs_reads_total")
-            - replace_pattern(name, "^container\\.filesystem\\.writes$", "container_fs_writes_total")
+            # Filesystem metrics (capacity only - no I/O operations available in kubelet stats)
             - replace_pattern(name, "^container\\.filesystem\\.capacity$", "container_fs_limit_bytes")
             - replace_pattern(name, "^container\\.filesystem\\.usage$", "container_fs_usage_bytes")
             - replace_pattern(name, "^container\\.filesystem\\.available$", "container_fs_available_bytes")
@@ -274,7 +272,7 @@ spec:
         metrics:
           metric:
             # Filter for original kubeletstats format - drop metrics NOT matching the important list (keep only important ones)
-            - not IsMatch(name, "^({{- range $i, $m := .Values.daemonset.kubeletStats.importantMetrics -}}{{ if ne $i 0 }}|{{ end }}{{ $m | replace "." "\\\\." | replace "*" ".*" }}{{- end }})$")
+            - not IsMatch(name, "^({{- range $i, $m := .Values.daemonset.kubeletStats.importantMetrics -}}{{ if ne $i 0 }}|{{ end }}{{ $m | replace "." "\." | replace "*" ".*" }}{{- end }})$")
       {{- end }}
 
       {{- if ne (len .Values.daemonset.kubeletStats.importantMetricsCadvisor) 0 }}
@@ -283,7 +281,7 @@ spec:
         metrics:
           metric:
             # Filter for cAdvisor format - drop metrics NOT matching the important list (keep only important ones)
-            - not IsMatch(name, "^({{- range $i, $m := .Values.daemonset.kubeletStats.importantMetricsCadvisor -}}{{ if ne $i 0 }}|{{ end }}{{ $m | replace "." "\\\\." | replace "*" ".*" }}{{- end }})$")
+            - not IsMatch(name, "^({{- range $i, $m := .Values.daemonset.kubeletStats.importantMetricsCadvisor -}}{{ if ne $i 0 }}|{{ end }}{{ $m | replace "." "\." | replace "*" ".*" }}{{- end }})$")
       {{- end }}
 
       memory_limiter:
