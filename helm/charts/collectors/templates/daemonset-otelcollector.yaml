@@ -124,9 +124,44 @@ spec:
                   replacement: $$1
                   action: keep
               {{- end }}
+        
+      prometheus:
+        config:
+          scrape_configs:        
+            - job_name: 'kubernetes-nodes-cadvisor'
+              scrape_interval: {{ .Values.daemonset.prometheus.cAdvisor.scrapeInterval }}
+              scrape_timeout: {{ .Values.daemonset.prometheus.cAdvisor.scrapeTimeout }}
+              scheme: https
+              tls_config:
+                ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+                insecure_skip_verify: true
+              bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+
+              static_configs:
+                - targets: 
+                  - '${MY_NODE_NAME}:10250'
+              metrics_path: /metrics/cadvisor
+
+              {{- if ne (len .Values.daemonset.prometheus.cAdvisor.importantMetrics) 0 }}
+                {{ $metrics := "" -}}
+                {{- range $index, $metric := .Values.daemonset.prometheus.cAdvisor.importantMetrics -}}
+                  {{- if eq $index 0 -}}
+                    {{- $metrics = printf "%s" $metric -}}
+                  {{ else }}
+                    {{- $metrics = printf "%s|%s" $metrics $metric -}}
+                  {{- end -}}
+                {{- end }}
+              metric_relabel_configs:
+                - source_labels: [__name__]
+                  separator: ;
+                  regex: {{ $metrics }}
+                  replacement: $$1
+                  action: keep
+              {{- end }}
 
       kubeletstats:
         collection_interval: {{ .Values.daemonset.kubeletStats.collectionInterval }}
+        timeout: {{ .Values.daemonset.kubeletStats.timeout }}
         auth_type: {{ .Values.daemonset.kubeletStats.authType }}
         ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
         endpoint: "${MY_NODE_NAME}:10250"
@@ -138,6 +173,31 @@ spec:
       {{- end }}
 
     processors:
+      resourcedetection:
+        detectors: [env, azure]
+        azure:
+          resource_attributes:
+            cloud.provider:
+              enabled: true
+            cloud.platform:
+              enabled: false
+            cloud.region:
+              enabled: true
+            cloud.account.id:
+              enabled: false
+            host.id:
+              enabled: false
+            host.name:
+              enabled: false
+            azure.vm.name:
+              enabled: false
+            azure.vm.size:
+              enabled: true
+            azure.vm.scaleset.name:
+              enabled: false
+            azure.resourcegroup.name:
+              enabled: false
+
       transform/prepare:
         metric_statements:
           - statements:
@@ -235,12 +295,18 @@ spec:
             name: k8s.pod.uid
         - sources:
           - from: connection
-
       attributes:
         actions:
           - key: k8s.cluster.name
             value: {{ .Values.clusterName }}
             action: upsert
+      resource:
+        attributes:
+          - key: vm.type
+            action: upsert
+            from_attribute: azure.vm.size
+          - key: azure.vm.size
+            action: delete
       attributes/self:
         actions:
           - key: otelcollector.type
@@ -258,10 +324,16 @@ spec:
 
       {{- range $teamName, $teamInfo := $teams }}
         {{- if and (ne $teamInfo.ignore true) (ne (len $teamInfo.namespaces) 0) }}
-      filter/{{ $teamName }}:
+      filter/{{ $teamName }}_logs:
         error_mode: ignore
         logs:
           log_record:
+            - {{ $teamInfo.filter }}
+
+      filter/{{ $teamName }}_metrics:
+        error_mode: ignore
+        metrics:
+          datapoint:
             - {{ $teamInfo.filter }}
         {{- end }}
       {{- end }}
@@ -327,7 +399,9 @@ spec:
             - otlphttp/opsteam
             # - logging
 
-        metrics/kubeletstats:
+        {{- range $teamName, $teamInfo := $teams }}
+          {{- if ne $teamInfo.ignore true }}
+        metrics/kubeletstats_{{ $teamName }}:
           receivers:
             - kubeletstats
           processors:
@@ -337,13 +411,15 @@ spec:
           {{- if ne (len .Values.daemonset.kubeletStats.importantMetrics) 0 }}
             - filter/kubeletstats_original
           {{- end }}
+          {{- if ne (len $teamInfo.namespaces) 0 }}
+            - filter/{{ $teamName }}_metrics
+          {{- end }}
             - batch
           exporters:
-            - otlphttp/opsteam
+            - otlphttp/{{ $teamName }}
             # - logging
 
-
-        metrics/kubeletstats_cadvisor:
+        metrics/kubeletstats_cadvisor_{{ $teamName }}:
           receivers:
             - kubeletstats
           processors:
@@ -354,14 +430,32 @@ spec:
           {{- if ne (len .Values.daemonset.kubeletStats.importantMetricsCadvisor) 0 }}
             - filter/kubeletstats_cadvisor
           {{- end }}
+          {{- if ne (len $teamInfo.namespaces) 0 }}
+            - filter/{{ $teamName }}_metrics
+          {{- end }}
             - batch
           exporters:
-            - otlphttp/opsteam
+            - otlphttp/{{ $teamName }}
             # - logging
 
+        metrics/{{ $teamName }}:
+          receivers:
+            - prometheus
+          processors:
+            - memory_limiter
+            - resourcedetection
+            - transform/prepare
+            - k8sattributes
+            - attributes
+            - resource
+          {{- if ne (len $teamInfo.namespaces) 0 }}
+            - filter/{{ $teamName }}_metrics
+          {{- end }}
+            - batch
+          exporters:
+            - otlphttp/{{ $teamName }}
+            # - logging
 
-        {{- range $teamName, $teamInfo := $teams }}
-          {{- if ne $teamInfo.ignore true }}
         logs/{{ $teamName }}:
           receivers:
             - filelog
@@ -370,7 +464,7 @@ spec:
             - k8sattributes
             - attributes
           {{- if ne (len $teamInfo.namespaces) 0 }}
-            - filter/{{ $teamName }}
+            - filter/{{ $teamName }}_logs
           {{- end }}
             - batch
           exporters:

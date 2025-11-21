@@ -455,11 +455,22 @@ daemonset:
         # - otelcol_exporter_refused_metric_points
         # - otelcol_exporter_refused_spans
         # - otelcol_exporter_refused_log_records
+    
+    # cAdvisor specific configuration
+    cAdvisor:
+      # Scrape interval
+      scrapeInterval: 60s
+      scrapeTimeout: 20s
+      # Keeps only the most important metrics and drops the rest of the scraped metrics
+      importantMetrics: []
+        # - container_fs_reads_total
+        # - container_fs_writes_total
 
   # Kubelet Stats specific configuration
   kubeletStats:
     # Collection interval
     collectionInterval: 60s
+    timeout: 20s
     # Auth type for kubelet stats endpoint (serviceAccount or tls)
     authType: serviceAccount
     # Insecure skip verify for kubelet TLS
@@ -491,8 +502,6 @@ daemonset:
       # - container_memory_working_set_bytes
       # - container_memory_rss
       # - container_memory_swap
-      # - container_fs_reads_total
-      # - container_fs_writes_total
       # - container_network_receive_bytes_total
       # - container_network_transmit_bytes_total
       # - node_cpu_seconds_total
@@ -822,26 +831,6 @@ statefulset:
     nodes:
       # Scrape interval
       scrapeInterval: 60s
-
-    # Kubelet Stats specific configuration
-    kubeletStats:
-      # Collection interval
-      collectionInterval: 60s
-      # Auth type for kubelet stats endpoint (serviceAccount or tls)
-      authType: serviceAccount
-      # Insecure skip verify for kubelet TLS
-      insecureSkipVerify: true
-      # Metrics to collect from kubelet stats
-      metricGroups:
-        - container
-        - pod
-        - node
-        - volume
-      # Pipeline control flags
-      # Enable original OpenTelemetry format pipeline (k8s.container.*, k8s.pod.*, etc.)
-      enableOriginalFormat: true
-      # Enable cAdvisor-compatible format pipeline (container_*_total, etc.)
-      enableCadvisorFormat: true
 
     # Core DNS specific configuration
     coreDns:
