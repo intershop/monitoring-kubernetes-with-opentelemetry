@@ -289,12 +289,11 @@ spec:
       {{- end }}
 
       {{- if ne (len .Values.daemonset.kubeletStats.importantMetrics) 0 }}
-      filter/kubeletstats:
+      filter/kubeletstats_metrics:
         error_mode: ignore
         metrics:
-          metric:
-            - |
-            not IsMatch(name, "^({{- range $i, $m := .Values.daemonset.kubeletStats.importantMetrics -}}{{ if ne $i 0 }}|{{ end }}{{ $m | replace "." "\\." | replace "*" ".*" }}{{- end }})$")
+          metric: 
+            - 'not IsMatch(name, "^({{- range $i, $m := .Values.daemonset.kubeletStats.importantMetrics -}}{{ if ne $i 0 }}|{{ end }}{{ $m | replace "." "\\." | replace "*" ".*" }}{{- end }})$")'
       {{- end }}
 
       memory_limiter:
@@ -350,7 +349,7 @@ spec:
             - k8sattributes
             - attributes
           {{- if ne (len $.Values.daemonset.kubeletStats.importantMetrics) 0 }}
-            - filter/kubeletstats
+            - filter/kubeletstats_metrics
           {{- end }}
           {{- if ne (len $teamInfo.namespaces) 0 }}
             - filter/{{ $teamName }}_metrics
