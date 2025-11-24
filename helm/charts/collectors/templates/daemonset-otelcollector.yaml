@@ -292,8 +292,8 @@ spec:
       filter/kubeletstats_metrics:
         error_mode: ignore
         metrics:
-          metric: 
-            - 'not IsMatch(name, "^({{- range $i, $m := .Values.daemonset.kubeletStats.importantMetrics -}}{{ if ne $i 0 }}|{{ end }}{{ $m | replace "." "\\." | replace "*" ".*" }}{{- end }})$")'
+          metric:
+            - not (IsMatch(name, "^({{- range $i, $m := .Values.daemonset.kubeletStats.importantMetrics -}}{{ if ne $i 0 }}|{{ end }}{{ $m | replace "." "\\\\." | replace "*" ".*" }}{{- end }})$"))
       {{- end }}
 
       memory_limiter:
