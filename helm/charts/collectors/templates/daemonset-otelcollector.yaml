@@ -210,56 +210,6 @@ spec:
               - delete_key(resource.attributes, "service.version")
               - delete_key(resource.attributes, "service.instance.id")
 
-      transform/kubeletstats_to_cadvisor:
-        metric_statements:
-          - context: metric
-            statements:
-            # Transform kubeletstats metric names to cAdvisor-compatible names
-            # CPU metrics
-            - replace_pattern(name, "^container\\.cpu\\.time$", "container_cpu_usage_seconds_total")
-            - replace_pattern(name, "^k8s\\.node\\.cpu\\.time$", "node_cpu_seconds_total")
-            - replace_pattern(name, "^k8s\\.pod\\.cpu\\.time$", "pod_cpu_usage_seconds_total")
-            
-            # Memory metrics  
-            - replace_pattern(name, "^container\\.memory\\.usage$", "container_memory_usage_bytes")
-            - replace_pattern(name, "^container\\.memory\\.working_set$", "container_memory_working_set_bytes")
-            - replace_pattern(name, "^container\\.memory\\.rss$", "container_memory_rss")
-            - replace_pattern(name, "^container\\.memory\\.cache$", "container_memory_cache")
-            - replace_pattern(name, "^container\\.memory\\.swap$", "container_memory_swap")
-            - replace_pattern(name, "^k8s\\.pod\\.memory\\.usage$", "pod_memory_usage_bytes")
-            - replace_pattern(name, "^k8s\\.pod\\.memory\\.working_set$", "pod_memory_working_set_bytes")
-            - replace_pattern(name, "^k8s\\.node\\.memory\\.available$", "node_memory_MemAvailable_bytes")
-            - replace_pattern(name, "^k8s\\.node\\.memory\\.usage$", "node_memory_MemTotal_bytes")
-            
-            # Filesystem metrics (capacity only - no I/O operations available in kubelet stats)
-            - replace_pattern(name, "^container\\.filesystem\\.capacity$", "container_fs_limit_bytes")
-            - replace_pattern(name, "^container\\.filesystem\\.usage$", "container_fs_usage_bytes")
-            - replace_pattern(name, "^container\\.filesystem\\.available$", "container_fs_available_bytes")
-            - replace_pattern(name, "^k8s\\.node\\.filesystem\\.available$", "node_filesystem_avail_bytes")
-            - replace_pattern(name, "^k8s\\.node\\.filesystem\\.capacity$", "node_filesystem_size_bytes")
-            - replace_pattern(name, "^k8s\\.node\\.filesystem\\.usage$", "node_filesystem_usage_bytes")
-            
-            # Network metrics - simplified without attribute conditions for now
-            - replace_pattern(name, "^k8s\\.pod\\.network\\.io$", "container_network_io_bytes_total")
-            - replace_pattern(name, "^k8s\\.pod\\.network\\.errors$", "container_network_errors_total")
-            - replace_pattern(name, "^k8s\\.node\\.network\\.io$", "node_network_io_bytes_total")
-            - replace_pattern(name, "^k8s\\.node\\.network\\.errors$", "node_network_errors_total")
-            
-            # Volume metrics
-            - replace_pattern(name, "^k8s\\.volume\\.capacity$", "container_fs_limit_bytes")
-            - replace_pattern(name, "^k8s\\.volume\\.available$", "container_fs_available_bytes")
-            - replace_pattern(name, "^k8s\\.volume\\.usage$", "container_fs_usage_bytes")
-            - replace_pattern(name, "^k8s\\.volume\\.inodes$", "container_fs_inodes_total")
-            - replace_pattern(name, "^k8s\\.volume\\.inodes_free$", "container_fs_inodes_free")
-            - replace_pattern(name, "^k8s\\.volume\\.inodes_used$", "container_fs_inodes_used")
-            
-          - context: resource
-            statements:
-            # Set service.name to match cAdvisor job name for backward compatibility
-            - set(attributes["service.name"], "kubernetes-nodes-cadvisor")
-            # Ensure proper attribute mapping for cAdvisor compatibility
-            - set(attributes["job"], "kubernetes-nodes-cadvisor") where attributes["service.name"] == "kubernetes-nodes-cadvisor"
-
       k8sattributes:
         extract:
           metadata:
@@ -347,15 +297,6 @@ spec:
             - not IsMatch(name, "^({{- range $i, $m := .Values.daemonset.kubeletStats.importantMetrics -}}{{ if ne $i 0 }}|{{ end }}{{ $m | replace "." "\\\." | replace "*" ".*" }}{{- end }})$")
       {{- end }}
 
-      {{- if ne (len .Values.daemonset.kubeletStats.importantMetricsCadvisor) 0 }}
-      filter/kubeletstats_cadvisor:
-        error_mode: ignore
-        metrics:
-          metric:
-            # Filter for cAdvisor format - drop metrics NOT matching the important list (keep only important ones)
-            - not IsMatch(name, "^({{- range $i, $m := .Values.daemonset.kubeletStats.importantMetricsCadvisor -}}{{ if ne $i 0 }}|{{ end }}{{ $m | replace "." "\\\." | replace "*" ".*" }}{{- end }})$")
-      {{- end }}
-
       memory_limiter:
          check_interval: 1s
          limit_percentage: 80
@@ -410,25 +351,6 @@ spec:
             - attributes
           {{- if ne (len $.Values.daemonset.kubeletStats.importantMetrics) 0 }}
             - filter/kubeletstats_original
-          {{- end }}
-          {{- if ne (len $teamInfo.namespaces) 0 }}
-            - filter/{{ $teamName }}_metrics
-          {{- end }}
-            - batch
-          exporters:
-            - otlphttp/{{ $teamName }}
-            # - logging
-
-        metrics/kubeletstats_cadvisor_{{ $teamName }}:
-          receivers:
-            - kubeletstats
-          processors:
-            - memory_limiter
-            - transform/kubeletstats_to_cadvisor
-            - k8sattributes
-            - attributes
-          {{- if ne (len $.Values.daemonset.kubeletStats.importantMetricsCadvisor) 0 }}
-            - filter/kubeletstats_cadvisor
           {{- end }}
           {{- if ne (len $teamInfo.namespaces) 0 }}
             - filter/{{ $teamName }}_metrics

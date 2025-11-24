@@ -463,8 +463,15 @@ daemonset:
       scrapeTimeout: 20s
       # Keeps only the most important metrics and drops the rest of the scraped metrics
       importantMetrics: []
-        # - container_fs_reads_total
-        # - container_fs_writes_total
+        # - container_cpu_usage_seconds_total
+        # - container_memory_usage_bytes
+        # - container_memory_working_set_bytes
+        # - container_memory_rss
+        # - container_memory_swap
+        # - container_network_receive_bytes_total
+        # - container_network_transmit_bytes_total
+        # - node_cpu_seconds_total
+        # - node_memory_MemAvailable_bytes
 
   # Kubelet Stats specific configuration
   kubeletStats:
@@ -495,17 +502,6 @@ daemonset:
       # - k8s.container.network.tx_bytes
       # - k8s.node.cpu.time
       # - k8s.node.memory.available
-    # Keeps only the most important metrics and drops the rest (cAdvisor format after transformation)
-    importantMetricsCadvisor: []
-      # - container_cpu_usage_seconds_total
-      # - container_memory_usage_bytes
-      # - container_memory_working_set_bytes
-      # - container_memory_rss
-      # - container_memory_swap
-      # - container_network_receive_bytes_total
-      # - container_network_transmit_bytes_total
-      # - node_cpu_seconds_total
-      # - node_memory_MemAvailable_bytes
 
   # Specific collector processor configuration
   processors:
