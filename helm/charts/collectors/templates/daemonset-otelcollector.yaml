@@ -408,7 +408,7 @@ spec:
             - memory_limiter
             - k8sattributes
             - attributes
-          {{- if ne (len .Values.daemonset.kubeletStats.importantMetrics) 0 }}
+          {{- if ne (len $.Values.daemonset.kubeletStats.importantMetrics) 0 }}
             - filter/kubeletstats_original
           {{- end }}
           {{- if ne (len $teamInfo.namespaces) 0 }}
@@ -427,7 +427,7 @@ spec:
             - transform/kubeletstats_to_cadvisor
             - k8sattributes
             - attributes
-          {{- if ne (len .Values.daemonset.kubeletStats.importantMetricsCadvisor) 0 }}
+          {{- if ne (len $.Values.daemonset.kubeletStats.importantMetricsCadvisor) 0 }}
             - filter/kubeletstats_cadvisor
           {{- end }}
           {{- if ne (len $teamInfo.namespaces) 0 }}
