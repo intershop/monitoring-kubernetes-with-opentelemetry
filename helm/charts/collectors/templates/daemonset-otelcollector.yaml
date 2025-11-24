@@ -289,12 +289,12 @@ spec:
       {{- end }}
 
       {{- if ne (len .Values.daemonset.kubeletStats.importantMetrics) 0 }}
-      filter/kubeletstats_original:
+      filter/kubeletstats:
         error_mode: ignore
         metrics:
           metric:
-            # Filter for original kubeletstats format - drop metrics NOT matching the important list (keep only important ones)
-            - not IsMatch(name, "^({{- range $i, $m := .Values.daemonset.kubeletStats.importantMetrics -}}{{ if ne $i 0 }}|{{ end }}{{ $m | replace "." "\\." | replace "*" ".*" }}{{- end }})$")
+            - |
+            not IsMatch(name, "^({{- range $i, $m := .Values.daemonset.kubeletStats.importantMetrics -}}{{ if ne $i 0 }}|{{ end }}{{ $m | replace "." "\\." | replace "*" ".*" }}{{- end }})$")
       {{- end }}
 
       memory_limiter:
@@ -350,7 +350,7 @@ spec:
             - k8sattributes
             - attributes
           {{- if ne (len $.Values.daemonset.kubeletStats.importantMetrics) 0 }}
-            - filter/kubeletstats_original
+            - filter/kubeletstats
           {{- end }}
           {{- if ne (len $teamInfo.namespaces) 0 }}
             - filter/{{ $teamName }}_metrics
