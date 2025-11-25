@@ -139,7 +139,7 @@ spec:
 
               static_configs:
                 - targets: 
-                  - '${env:MY_NODE_NAME}:10250'
+                  - '${MY_NODE_NAME}:10250'
               metrics_path: /metrics/cadvisor
 
               {{- if ne (len .Values.daemonset.prometheus.cAdvisor.importantMetrics) 0 }}
@@ -164,7 +164,7 @@ spec:
         timeout: {{ .Values.daemonset.kubeletStats.timeout }}
         auth_type: {{ .Values.daemonset.kubeletStats.authType }}
         ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-        endpoint: "${env:MY_NODE_NAME}:10250"
+        endpoint: "${MY_NODE_NAME}:10250"
         insecure_skip_verify: {{ .Values.daemonset.kubeletStats.insecureSkipVerify }}
         metric_groups: {{ .Values.daemonset.kubeletStats.metricGroups | toYaml | nindent 10 }}
         metrics:
