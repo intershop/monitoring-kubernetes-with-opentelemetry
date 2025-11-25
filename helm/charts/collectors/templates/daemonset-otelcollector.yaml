@@ -139,7 +139,7 @@ spec:
 
               static_configs:
                 - targets: 
-                  - '${MY_NODE_NAME}:10250'
+                  - '${env:MY_NODE_NAME}:10250'
               metrics_path: /metrics/cadvisor
 
               {{- if ne (len .Values.daemonset.prometheus.cAdvisor.importantMetrics) 0 }}
@@ -164,16 +164,16 @@ spec:
         timeout: {{ .Values.daemonset.kubeletStats.timeout }}
         auth_type: {{ .Values.daemonset.kubeletStats.authType }}
         ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-        endpoint: "${MY_NODE_NAME}:10250"
+        endpoint: "${env:MY_NODE_NAME}:10250"
         insecure_skip_verify: {{ .Values.daemonset.kubeletStats.insecureSkipVerify }}
         metric_groups: {{ .Values.daemonset.kubeletStats.metricGroups | toYaml | nindent 10 }}
-        extra_metrics:
-        container.cpu.usage:
-          enabled: true
-        container.memory.usage:
-          enabled: true
-        container.filesystem.usage:
-          enabled: true  
+        metrics:
+          container.cpu.usage:
+            enabled: true
+          container.memory.usage:
+            enabled: true
+          container.filesystem.usage:
+  enabled: true  
       {{- with .Values.daemonset.filelog }}
       filelog: {{ toYaml . | nindent 8 }}
       {{- end }}
@@ -208,11 +208,12 @@ spec:
         metric_statements:
           - context: datapoint 
             statements:
-              # copy service.name to scraper.job to replace filtering 
+               
               - set(resource.attributes["k8s.pod.name"], attributes["pod"]) where attributes["pod"] != nil
               - set(resource.attributes["k8s.namespace.name"], attributes["namespace"]) where attributes["namespace"] != nil
               - set(resource.attributes["k8s.container.name"], attributes["container"]) where attributes["container"] != nil
           - statements:
+              # copy service.name to scraper.job to replace filtering
               - set(resource.attributes["scraper.job"], resource.attributes["service.name"])
               # Delete atributes added by prometheus-receiver so that k8sattributes processor can re-add them.
               # See https://github.com/open-telemetry/opentelemetry-collector-contrib/issues/41139
