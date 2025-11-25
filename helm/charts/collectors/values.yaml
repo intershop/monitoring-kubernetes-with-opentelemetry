@@ -490,18 +490,33 @@ daemonset:
       - volume
     # Keeps only the most important metrics and drops the rest (original kubeletstats format)
     importantMetrics: []
-      # - k8s.container.cpu_time
-      # - k8s.container.memory
-      # - k8s.container.memory_working_set
-      # - k8s.container.memory_rss
-      # - k8s.container.memory_cache
-      # - k8s.container.memory_swap
-      # - k8s.container.filesystem.reads
-      # - k8s.container.filesystem.writes
-      # - k8s.container.network.rx_bytes
-      # - k8s.container.network.tx_bytes
+      # - container.cpu.time
+      # - container.memory.working_set
+      # - container.memory.rss
+      # - container.memory.usage
+      # - container.filesystem.available
+      # - container.filesystem.capacity
+      # - container.filesystem.usage
+      # - k8s.pod.cpu.time
+      # - k8s.pod.memory.working_set
+      # - k8s.pod.memory.rss
+      # - k8s.pod.memory.usage
+      # - k8s.pod.network.io
+      # - k8s.pod.network.errors
+      # - k8s.pod.filesystem.available
+      # - k8s.pod.filesystem.capacity
+      # - k8s.pod.filesystem.usage
       # - k8s.node.cpu.time
+      # - k8s.node.cpu.usage
       # - k8s.node.memory.available
+      # - k8s.node.memory.working_set
+      # - k8s.node.memory.rss
+      # - k8s.node.memory.usage
+      # - k8s.node.filesystem.available
+      # - k8s.node.filesystem.capacity
+      # - k8s.node.filesystem.usage
+      # - k8s.node.network.io
+      # - k8s.node.network.errors
 
   # Specific collector processor configuration
   processors:
