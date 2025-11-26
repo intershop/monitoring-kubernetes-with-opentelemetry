@@ -357,6 +357,7 @@ spec:
             - kubeletstats
           processors:
             - memory_limiter
+            - resourcedetection
             - k8sattributes
             - attributes
           {{- if ne (len $.Values.daemonset.kubeletStats.importantMetrics) 0 }}
