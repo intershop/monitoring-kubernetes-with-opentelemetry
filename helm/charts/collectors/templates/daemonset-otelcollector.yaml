@@ -167,13 +167,7 @@ spec:
         endpoint: "${MY_NODE_NAME}:10250"
         insecure_skip_verify: {{ .Values.daemonset.kubeletStats.insecureSkipVerify }}
         metric_groups: {{ .Values.daemonset.kubeletStats.metricGroups | toYaml | nindent 10 }}
-        metrics:
-          container.cpu.usage:
-            enabled: true
-          container.memory.usage:
-            enabled: true
-          container.filesystem.usage:
-            enabled: true
+        
       {{- with .Values.daemonset.filelog }}
       filelog: {{ toYaml . | nindent 8 }}
       {{- end }}
