@@ -360,6 +360,7 @@ spec:
             - resourcedetection
             - k8sattributes
             - attributes
+            - resource
           {{- if ne (len $.Values.daemonset.kubeletStats.importantMetrics) 0 }}
             - filter/kubeletstats_metrics
           {{- end }}
