@@ -214,7 +214,7 @@ spec:
           - statements:
               # copy service.name to scraper.job to replace filtering
               - set(resource.attributes["scraper.job"], resource.attributes["service.name"])
-              # Delete atributes added by prometheus-receiver so that k8sattributes processor can re-add them.
+              # Delete attributes added by prometheus-receiver so that k8sattributes processor can re-add them.
               # See https://github.com/open-telemetry/opentelemetry-collector-contrib/issues/41139
               - delete_key(resource.attributes, "service.name")
               - delete_key(resource.attributes, "service.namespace")
