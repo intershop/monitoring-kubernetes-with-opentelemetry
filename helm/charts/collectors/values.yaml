@@ -383,15 +383,10 @@ daemonset:
           - 'nodes'
           - 'nodes/proxy'
           - 'nodes/stats'
-        verbs:
-          - 'get'
-          - 'list'
-      - apiGroups:
-          - ''
-        resources:
           - 'nodes/metrics'
         verbs:
           - 'get'
+          - 'list'
       - apiGroups:
           - 'apps'
         resources:
