@@ -361,6 +361,14 @@ daemonset:
   # Annotations for collector pods
   annotations: {}
 
+  tolerations:
+    - key: node-role.kubernetes.io/master
+      operator: Exists
+      effect: NoSchedule
+    - key: node-role.kubernetes.io/control-plane
+      operator: Exists
+      effect: NoSchedule
+
   clusterRole:
     # Annotations to add to the clusterRole
     # Can be used in combination with presets that create a cluster role.
