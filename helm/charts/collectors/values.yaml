@@ -270,7 +270,7 @@ deployment:
     # Receiver collector
     receiver:
       # K8s attributes processor labels & annotations config
-      k8s_attributes:
+      k8sattributes:
         # Labels
         labels: []
         # Annotations
@@ -523,7 +523,7 @@ daemonset:
   # Specific collector processor configuration
   processors:
     # K8s attributes processor labels & annotations config
-    k8s_attributes:
+    k8sattributes:
       # Labels
       labels: []
       # Annotations
@@ -995,7 +995,7 @@ statefulset:
   # Specific collector processor configuration
   processors:
     # K8s attributes processor labels & annotations config
-    k8s_attributes:
+    k8sattributes:
       # Labels
       labels: []
       # Annotations
