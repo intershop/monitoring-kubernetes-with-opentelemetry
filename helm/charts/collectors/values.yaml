@@ -9,7 +9,6 @@ clusterName: ""
 ### GLOBAL CONFIG ###
 # Global config for ease of use to apply to all collector types.
 global:
-
   # New Relic account configuration
   newrelic:
     # Flag to enable global New Relic configuration.
@@ -33,7 +32,8 @@ global:
           # If you already have your license key as a secret stored within the same
           # namespace as this Helm deployment, provide the secret name and the key to
           # license key.
-          secretRef: null
+          secretRef:
+            null
             # name: ""
             # key: ""
         # Namespaces to filter the gathered telemetry data
@@ -88,7 +88,6 @@ global:
 
 # Both collectors can be scaled out/in independently from each other
 deployment:
-
   # Flag to enable
   enabled: true
 
@@ -120,30 +119,30 @@ deployment:
     # Can be used in combination with presets that create a cluster role to add additional rules.
     rules:
       - apiGroups:
-          - ''
+          - ""
         resources:
-          - 'pods'
-          - 'namespaces'
+          - "pods"
+          - "namespaces"
         verbs:
-          - 'get'
-          - 'watch'
-          - 'list'
+          - "get"
+          - "watch"
+          - "list"
       - apiGroups:
-          - 'apps'
+          - "apps"
         resources:
-          - 'replicasets'
+          - "replicasets"
         verbs:
-          - 'get'
-          - 'list'
-          - 'watch'
+          - "get"
+          - "list"
+          - "watch"
       - apiGroups:
-          - 'extensions'
+          - "extensions"
         resources:
-          - 'replicasets'
+          - "replicasets"
         verbs:
-          - 'get'
-          - 'list'
-          - 'watch'
+          - "get"
+          - "list"
+          - "watch"
 
   clusterRoleBinding:
     # Annotations to add to the clusterRoleBinding
@@ -271,7 +270,7 @@ deployment:
     # Receiver collector
     receiver:
       # K8s attributes processor labels & annotations config
-      k8sattributes:
+      k8s_attributes:
         # Labels
         labels: []
         # Annotations
@@ -297,7 +296,8 @@ deployment:
           # If you already have your license key as a secret stored within the same
           # namespace as this Helm deployment, provide the secret name and the key to
           # license key.
-          secretRef: null
+          secretRef:
+            null
             # name: ""
             # key: ""
         # Namespaces to filter the gathered telemetry data
@@ -337,7 +337,6 @@ deployment:
 # This configuration is responsible for collecting the logs from the
 # applications running on the cluster.
 daemonset:
-
   # Flag to enable
   enabled: true
 
@@ -377,40 +376,40 @@ daemonset:
     # Can be used in combination with presets that create a cluster role to add additional rules.
     rules:
       - apiGroups:
-          - ''
+          - ""
         resources:
-          - 'pods'
-          - 'namespaces'
+          - "pods"
+          - "namespaces"
         verbs:
-          - 'get'
-          - 'watch'
-          - 'list'
+          - "get"
+          - "watch"
+          - "list"
       - apiGroups:
-          - ''
+          - ""
         resources:
-          - 'nodes'
-          - 'nodes/proxy'
-          - 'nodes/stats'
-          - 'nodes/metrics'
+          - "nodes"
+          - "nodes/proxy"
+          - "nodes/stats"
+          - "nodes/metrics"
         verbs:
-          - 'get'
-          - 'list'
+          - "get"
+          - "list"
       - apiGroups:
-          - 'apps'
+          - "apps"
         resources:
-          - 'replicasets'
+          - "replicasets"
         verbs:
-          - 'get'
-          - 'list'
-          - 'watch'
+          - "get"
+          - "list"
+          - "watch"
       - apiGroups:
-          - 'extensions'
+          - "extensions"
         resources:
-          - 'replicasets'
+          - "replicasets"
         verbs:
-          - 'get'
-          - 'list'
-          - 'watch'
+          - "get"
+          - "list"
+          - "watch"
 
   clusterRoleBinding:
     # Annotations to add to the clusterRoleBinding
@@ -458,7 +457,7 @@ daemonset:
         # - otelcol_exporter_refused_metric_points
         # - otelcol_exporter_refused_spans
         # - otelcol_exporter_refused_log_records
-    
+
     # cAdvisor specific configuration
     cAdvisor:
       # Scrape interval
@@ -491,7 +490,7 @@ daemonset:
       - pod
       - node
       - volume
-    # Keeps only the most important metrics and drops the rest (original kubeletstats format)
+    # Keeps only the most important metrics and drops the rest (original kubelet_stats format)
     importantMetrics: []
       # - container.cpu.time
       # - container.memory.working_set
@@ -524,7 +523,7 @@ daemonset:
   # Specific collector processor configuration
   processors:
     # K8s attributes processor labels & annotations config
-    k8sattributes:
+    k8s_attributes:
       # Labels
       labels: []
       # Annotations
@@ -534,65 +533,65 @@ daemonset:
   filelog:
     start_at: end
     include:
-    - /var/log/pods/*/*/*.log
+      - /var/log/pods/*/*/*.log
     include_file_name: false
     include_file_path: true
     operators:
-    - id: get-format
-      routes:
-      - expr: body matches "^\\{"
-        output: parser-docker
-      - expr: body matches "^[^ Z]+ "
-        output: parser-crio
-      - expr: body matches "^[^ Z]+Z"
-        output: parser-containerd
-      type: router
-    - id: parser-crio
-      output: extract_metadata_from_filepath
-      regex: ^(?P<time>[^ Z]+) (?P<stream>stdout|stderr) (?P<logtag>[^ ]*) ?(?P<log>.*)$
-      timestamp:
-        layout: "2006-01-02T15:04:05.000000000-07:00"
-        layout_type: gotime
-        parse_from: attributes.time
-      type: regex_parser
-    - id: parser-containerd
-      output: extract_metadata_from_filepath
-      regex: ^(?P<time>[^ ^Z]+Z) (?P<stream>stdout|stderr) (?P<logtag>[^ ]*) ?(?P<log>.*)$
-      timestamp:
-        layout: '%Y-%m-%dT%H:%M:%S.%LZ'
-        parse_from: attributes.time
-      type: regex_parser
-    - id: parser-docker
-      output: extract_metadata_from_filepath
-      timestamp:
-        layout: '%Y-%m-%dT%H:%M:%S.%LZ'
-        parse_from: attributes.time
-      type: json_parser
-    - id: extract_metadata_from_filepath
-      parse_from: attributes["log.file.path"]
-      regex: ^.*\/(?P<namespace>[^_]+)_(?P<pod_name>[^_]+)_(?P<uid>[a-f0-9\-]+)\/(?P<container_name>[^\._]+)\/(?P<restart_count>\d+)\.log$
-      type: regex_parser
-    - from: attributes.stream
-      to: attributes["log.iostream"]
-      type: move
-    - from: attributes.container_name
-      to: resource["k8s.container.name"]
-      type: move
-    - from: attributes.namespace
-      to: resource["k8s.namespace.name"]
-      type: move
-    - from: attributes.pod_name
-      to: resource["k8s.pod.name"]
-      type: move
-    - from: attributes.restart_count
-      to: resource["k8s.container.restart_count"]
-      type: move
-    - from: attributes.uid
-      to: resource["k8s.pod.uid"]
-      type: move
-    - from: attributes.log
-      to: body
-      type: move
+      - id: get-format
+        routes:
+          - expr: body matches "^\\{"
+            output: parser-docker
+          - expr: body matches "^[^ Z]+ "
+            output: parser-crio
+          - expr: body matches "^[^ Z]+Z"
+            output: parser-containerd
+        type: router
+      - id: parser-crio
+        output: extract_metadata_from_filepath
+        regex: ^(?P<time>[^ Z]+) (?P<stream>stdout|stderr) (?P<logtag>[^ ]*) ?(?P<log>.*)$
+        timestamp:
+          layout: "2006-01-02T15:04:05.000000000-07:00"
+          layout_type: gotime
+          parse_from: attributes.time
+        type: regex_parser
+      - id: parser-containerd
+        output: extract_metadata_from_filepath
+        regex: ^(?P<time>[^ ^Z]+Z) (?P<stream>stdout|stderr) (?P<logtag>[^ ]*) ?(?P<log>.*)$
+        timestamp:
+          layout: "%Y-%m-%dT%H:%M:%S.%LZ"
+          parse_from: attributes.time
+        type: regex_parser
+      - id: parser-docker
+        output: extract_metadata_from_filepath
+        timestamp:
+          layout: "%Y-%m-%dT%H:%M:%S.%LZ"
+          parse_from: attributes.time
+        type: json_parser
+      - id: extract_metadata_from_filepath
+        parse_from: attributes["log.file.path"]
+        regex: ^.*\/(?P<namespace>[^_]+)_(?P<pod_name>[^_]+)_(?P<uid>[a-f0-9\-]+)\/(?P<container_name>[^\._]+)\/(?P<restart_count>\d+)\.log$
+        type: regex_parser
+      - from: attributes.stream
+        to: attributes["log.iostream"]
+        type: move
+      - from: attributes.container_name
+        to: resource["k8s.container.name"]
+        type: move
+      - from: attributes.namespace
+        to: resource["k8s.namespace.name"]
+        type: move
+      - from: attributes.pod_name
+        to: resource["k8s.pod.name"]
+        type: move
+      - from: attributes.restart_count
+        to: resource["k8s.container.restart_count"]
+        type: move
+      - from: attributes.uid
+        to: resource["k8s.pod.uid"]
+        type: move
+      - from: attributes.log
+        to: body
+        type: move
 
   # New Relic account configuration
   # -> If the global New Relic configuration is enabled, this section will be ignored
@@ -614,7 +613,8 @@ daemonset:
           # If you already have your license key as a secret stored within the same
           # namespace as this Helm deployment, provide the secret name and the key to
           # license key.
-          secretRef: null
+          secretRef:
+            null
             # name: ""
             # key: ""
         # Namespaces to filter the gathered telemetry data
@@ -654,7 +654,6 @@ daemonset:
 # This configuration is responsible for scraping the metrics from the
 # various endpoints within the cluster.
 statefulset:
-
   # Flag to enable
   enabled: true
 
@@ -686,7 +685,7 @@ statefulset:
     # Can be used in combination with presets that create a cluster role to add additional rules.
     rules:
       - apiGroups:
-        - ""
+          - ""
         resources:
           - events
           - namespaces
@@ -710,7 +709,7 @@ statefulset:
           - list
           - watch
       - apiGroups:
-        - apps
+          - apps
         resources:
           - daemonsets
           - deployments
@@ -952,7 +951,7 @@ statefulset:
     # Config for defining extra custom scrape jobs
     extraScrapeJobs:
       # Kubernetes pod specific scrape job
-      - job_name: 'kubernetes-pods'
+      - job_name: "kubernetes-pods"
         scrape_interval: 60s
         honor_labels: true
 
@@ -960,13 +959,16 @@ statefulset:
           - role: pod
 
         relabel_configs:
-          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+          - source_labels:
+              [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
             action: keep
             regex: true
-          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape_slow]
+          - source_labels:
+              [__meta_kubernetes_pod_annotation_prometheus_io_scrape_slow]
             action: drop
             regex: true
-          - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scheme]
+          - source_labels:
+              [__meta_kubernetes_service_annotation_prometheus_io_scheme]
             action: replace
             target_label: __scheme__
             regex: (https?)
@@ -974,7 +976,8 @@ statefulset:
             action: replace
             target_label: __metrics_path__
             regex: (.+)
-          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+          - source_labels:
+              [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
             action: replace
             target_label: __address__
             regex: ([^:]+)(?::\d+)?;(\d+)
@@ -992,12 +995,11 @@ statefulset:
   # Specific collector processor configuration
   processors:
     # K8s attributes processor labels & annotations config
-    k8sattributes:
+    k8s_attributes:
       # Labels
       labels: []
       # Annotations
       annotations: []
-
 
   # New Relic account configuration
   # -> If the global New Relic configuration is enabled, this section will be ignored
@@ -1019,7 +1021,8 @@ statefulset:
           # If you already have your license key as a secret stored within the same
           # namespace as this Helm deployment, provide the secret name and the key to
           # license key.
-          secretRef: null
+          secretRef:
+            null
             # name: ""
             # key: ""
         # Namespaces to filter the gathered telemetry data
@@ -1059,7 +1062,6 @@ statefulset:
 # This configuration is responsible for scraping the events from the
 # Kube-API-Server.
 singleton:
-
   # Flag to enable
   enabled: true
 
@@ -1109,7 +1111,7 @@ singleton:
           - list
           - watch
       - apiGroups:
-        - apps
+          - apps
         resources:
           - daemonsets
           - deployments
@@ -1194,7 +1196,6 @@ singleton:
         # - otelcol_exporter_refused_spans
         # - otelcol_exporter_refused_log_records
 
-
   # New Relic account configuration
   # -> If the global New Relic configuration is enabled, this section will be ignored
   newrelic:
@@ -1215,7 +1216,8 @@ singleton:
           # If you already have your license key as a secret stored within the same
           # namespace as this Helm deployment, provide the secret name and the key to
           # license key.
-          secretRef: null
+          secretRef:
+            null
             # name: ""
             # key: ""
         # Namespaces to filter the gathered telemetry data

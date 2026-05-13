@@ -154,7 +154,7 @@ spec:
                   action: keep
               {{- end }}
 
-      kubeletstats:
+      kubelet_stats:
         collection_interval: {{ .Values.daemonset.kubeletStats.collectionInterval }}
         timeout: {{ .Values.daemonset.kubeletStats.timeout }}
         auth_type: {{ .Values.daemonset.kubeletStats.authType }}
@@ -203,14 +203,14 @@ spec:
           - statements:
               # copy service.name to scraper.job to replace filtering
               - set(resource.attributes["scraper.job"], resource.attributes["service.name"])
-              # Delete attributes added by prometheus-receiver so that k8sattributes processor can re-add them.
+              # Delete attributes added by prometheus-receiver so that k8s_attributes processor can re-add them.
               # See https://github.com/open-telemetry/opentelemetry-collector-contrib/issues/41139
               - delete_key(resource.attributes, "service.name")
               - delete_key(resource.attributes, "service.namespace")
               - delete_key(resource.attributes, "service.version")
               - delete_key(resource.attributes, "service.instance.id")
 
-      k8sattributes:
+      k8s_attributes:
         extract:
           metadata:
           - k8s.namespace.name
@@ -289,7 +289,7 @@ spec:
       {{- end }}
 
       {{- if ne (len .Values.daemonset.kubeletStats.importantMetrics) 0 }}
-      filter/kubeletstats_metrics:
+      filter/kubelet_stats_metrics:
         error_mode: ignore
         metrics:
           metric:
@@ -331,7 +331,7 @@ spec:
           processors:
             - memory_limiter
             - transform/prepare
-            - k8sattributes
+            - k8s_attributes
             - attributes
             - attributes/self
             - batch
@@ -341,17 +341,17 @@ spec:
 
         {{- range $teamName, $teamInfo := $teams }}
           {{- if ne $teamInfo.ignore true }}
-        metrics/kubeletstats_{{ $teamName }}:
+        metrics/kubelet_stats_{{ $teamName }}:
           receivers:
-            - kubeletstats
+            - kubelet_stats
           processors:
             - memory_limiter
             - resourcedetection
-            - k8sattributes
+            - k8s_attributes
             - attributes
             - resource
           {{- if ne (len $.Values.daemonset.kubeletStats.importantMetrics) 0 }}
-            - filter/kubeletstats_metrics
+            - filter/kubelet_stats_metrics
           {{- end }}
           {{- if ne (len $teamInfo.namespaces) 0 }}
             - filter/{{ $teamName }}_metrics
@@ -368,7 +368,7 @@ spec:
             - memory_limiter
             - resourcedetection
             - transform/prepare
-            - k8sattributes
+            - k8s_attributes
             - attributes
             - resource
           {{- if ne (len $teamInfo.namespaces) 0 }}
@@ -384,7 +384,7 @@ spec:
             - filelog
           processors:
             - memory_limiter
-            - k8sattributes
+            - k8s_attributes
             - attributes
           {{- if ne (len $teamInfo.namespaces) 0 }}
             - filter/{{ $teamName }}_logs
