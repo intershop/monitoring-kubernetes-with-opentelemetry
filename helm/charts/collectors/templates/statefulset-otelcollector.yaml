@@ -606,7 +606,7 @@ spec:
 
       {{- range $teamName, $teamInfo := $teams }}
         {{- if ne $teamInfo.ignore true }}
-      otlphttp/{{ $teamName }}:
+      otlp_http/{{ $teamName }}:
         endpoint: {{ "${" }}{{ $teamName }}_endpoint}
         tls:
           insecure: false
@@ -637,7 +637,7 @@ spec:
             - batch
 
           exporters:
-            - otlphttp/opsteam
+            - otlp_http/opsteam
             # - logging
 
         {{- range $teamName, $teamInfo := $teams }}
@@ -657,7 +657,7 @@ spec:
           {{- end }}
             - batch
           exporters:
-            - otlphttp/{{ $teamName }}
+            - otlp_http/{{ $teamName }}
             # - logging
           {{- end }}
         {{- end }}

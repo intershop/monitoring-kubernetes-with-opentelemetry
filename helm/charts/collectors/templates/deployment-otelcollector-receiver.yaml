@@ -229,7 +229,7 @@ spec:
 
       {{- range $teamName, $teamInfo := $teams }}
         {{- if ne $teamInfo.ignore true }}
-      otlphttp/{{ $teamName }}:
+      otlp_http/{{ $teamName }}:
         endpoint: {{ "${" }}{{ $teamName }}_endpoint}
         tls:
           insecure: false
@@ -255,7 +255,7 @@ spec:
             - attributes/self
             - batch
           exporters:
-            - otlphttp/opsteam
+            - otlp_http/opsteam
             # - logging
 
         {{- if eq .Values.deployment.receiverPipeline.metrics.enabled true }}
@@ -274,7 +274,7 @@ spec:
           {{- end }}
             - batch
           exporters:
-            - otlphttp/{{ $teamName }}
+            - otlp_http/{{ $teamName }}
             # - logging
             {{- end }}
           {{- end }}
@@ -309,7 +309,7 @@ spec:
           {{- end }}
             - batch
           exporters:
-            - otlphttp/{{ $teamName }}
+            - otlp_http/{{ $teamName }}
             # - logging
             {{- end }}
           {{- end }}

@@ -8,7 +8,7 @@ Prometheus scrapers within the collectors are configured in a particular manner 
 
 - The `attibutes` processor adds the cluster name (`k8s.cluster.name`) to every collected metric for identification of their corresponding clusters.
 
-- The `k8sattributes` processor adds Kubernetes metadata (`k8s.node.name`, `k8s.namespace.name`, `k8s.pod.name`) to every telemetry data which implies where they are collected from.
+- The `k8s_attributes` processor adds Kubernetes metadata (`k8s.node.name`, `k8s.namespace.name`, `k8s.pod.name`) to every telemetry data which implies where they are collected from.
 
 ## Self metrics (job: `otelcollector`)
 
@@ -41,7 +41,7 @@ Important metrics:
 
 ## Nodes (job: `kubernetes-nodes`)
 
-This job is scraping the `/api/v1/nodes/__metrics_path__/proxy/metrics` endpoint on each node and lets us know what pods & containers are running on them per the metric `kubelet_container_log_filesystem_used_bytes`. On top that, the `k8sattributes` processor adds `k8s.node.name` to every metric.
+This job is scraping the `/api/v1/nodes/__metrics_path__/proxy/metrics` endpoint on each node and lets us know what pods & containers are running on them per the metric `kubelet_container_log_filesystem_used_bytes`. On top that, the `k8s_attributes` processor adds `k8s.node.name` to every metric.
 
 This allows us to query on which node each pod is running:
 
@@ -53,7 +53,7 @@ FROM Metric SELECT uniques(concat(k8s.node.name, ' -> ', pod)) AS `Node -> Pod` 
 
 ## Nodes cAdvisor (job: `kubernetes-nodes-cadvisor`)
 
-This job is scraping the `/api/v1/nodes/__metrics_path__/proxy/metrics/cadvisor` endpoint on each node and provides with extremely important container metrics. On top that, the `k8sattributes` processor adds `k8s.node.name` to every metric so that we can specify not only from which container they are coming from but also from which node.
+This job is scraping the `/api/v1/nodes/__metrics_path__/proxy/metrics/cadvisor` endpoint on each node and provides with extremely important container metrics. On top that, the `k8s_attributes` processor adds `k8s.node.name` to every metric so that we can specify not only from which container they are coming from but also from which node.
 
 This allows us to query on which node each pod is running:
 
@@ -103,7 +103,7 @@ Important metrics:
 
 ## Node exporter (job: `kubernetes-node-exporter`)
 
-This job is scraping explicitly the node exporter services. It is possible deploy the node-exporter with the helm chart or if you already have one in your cluster, you can reference its service name. On top that, the `k8sattributes` processor adds `k8s.node.name` to every metric.
+This job is scraping explicitly the node exporter services. It is possible deploy the node-exporter with the helm chart or if you already have one in your cluster, you can reference its service name. On top that, the `k8s_attributes` processor adds `k8s.node.name` to every metric.
 
 We can query the capacities of each node:
 
@@ -131,7 +131,7 @@ Important metrics
 
 ## Kube state metrics (job: `kubernetes-kube-state-metrics`)
 
-This job is scraping explicitly the kube-state-metrics services. It is possible deploy the kube-state-metrics with the helm chart or if you already have one in your cluster, you can reference its service name. On top that, the `k8sattributes` processor adds `k8s.node.name` to every metric to indicate which kube-state-metrics pod on which node is scraping those metrics.
+This job is scraping explicitly the kube-state-metrics services. It is possible deploy the kube-state-metrics with the helm chart or if you already have one in your cluster, you can reference its service name. On top that, the `k8s_attributes` processor adds `k8s.node.name` to every metric to indicate which kube-state-metrics pod on which node is scraping those metrics.
 
 We can query the memory limits assigned on each container within each pod:
 
@@ -142,7 +142,7 @@ FROM Metric SELECT filter(max(kube_pod_container_resource_limits), WHERE instrum
 `k8s.cluster.name` ensures that we are querying the correct cluster. Since, the attributes `container` and `pod` are also used in other metrics gathered by other scrape jobs, `service.name` guarantees that we are getting them from the `kubernetes-kube-state-metrics` job.
 
 **BEWARE:**
-Because of `k8sattributes` processor, the metrics coming from this job are enriched with `k8s.container.name` and `k8s.pod.name` whereas the scraped metrics also contain `container` and `pod` attributes.
+Because of `k8s_attributes` processor, the metrics coming from this job are enriched with `k8s.container.name` and `k8s.pod.name` whereas the scraped metrics also contain `container` and `pod` attributes.
 
 - `k8s.container.name` and `k8s.pod.name` stand for the kube-state-metrics instances
 - `container` and `pod` stand for the scraped instances by kube-state-metrics instances
@@ -157,7 +157,7 @@ not with `k8s.container.name` and `k8s.pod.name`!
 
 ## Service endpoints (job: `kubernetes-service-endpoints`)
 
-This job is scraping all of Kubernetes service endpoints that are annotated except node-exporter, kube-state-metrics and core DNS since they are already being scraped by their dedicated jobs. On top that, the `k8sattributes` processor adds `k8s.node.name`, `k8s.namespace.name`, `k8s.pod.name` and `k8s.container.name` attributes to every metric that are retrieved from the corresponding services of the pods.
+This job is scraping all of Kubernetes service endpoints that are annotated except node-exporter, kube-state-metrics and core DNS since they are already being scraped by their dedicated jobs. On top that, the `k8s_attributes` processor adds `k8s.node.name`, `k8s.namespace.name`, `k8s.pod.name` and `k8s.container.name` attributes to every metric that are retrieved from the corresponding services of the pods.
 
 We can query a custom metric that an application exposes within the `my-namespace` namespace per each pod:
 
