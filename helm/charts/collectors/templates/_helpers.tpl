@@ -142,15 +142,14 @@ Set name for kube-state-metrics service discovery.
 {{- range $teamName, $teamInfo := $teams -}}
   {{- if and (ne $teamInfo.ignore true) (ne (len $teamInfo.namespaces) 0) -}}
 
-    {{- $conditionForK8sNamespaceName := "not (" -}}
+    {{- $conditionForK8sNamespaceName := "" -}}
     {{- range $index, $namespace := $teamInfo.namespaces -}}
       {{- if eq $index 0 -}}
-        {{- $conditionForK8sNamespaceName = printf "%sIsMatch(resource.attributes[\"k8s.namespace.name\"], \"%s\") or IsMatch(attributes[\"k8s.namespace.name\"], \"%s\")" $conditionForK8sNamespaceName $namespace $namespace -}}
+        {{- $conditionForK8sNamespaceName = printf "%sIsMatch(resource.attributes[\"k8s.namespace.name\"], \"%s\")" $conditionForK8sNamespaceName $namespace -}}
       {{- else -}}
-        {{- $conditionForK8sNamespaceName = printf "%s or IsMatch(resource.attributes[\"k8s.namespace.name\"], \"%s\") or IsMatch(attributes[\"k8s.namespace.name\"], \"%s\")" $conditionForK8sNamespaceName $namespace $namespace -}}
+        {{- $conditionForK8sNamespaceName = printf "%s or IsMatch(resource.attributes[\"k8s.namespace.name\"], \"%s\")" $conditionForK8sNamespaceName $namespace -}}
       {{- end -}}
     {{- end -}}
-    {{- $conditionForK8sNamespaceName = printf "%s)" $conditionForK8sNamespaceName -}}
 
     {{- $_ := set $teamInfo "filter" $conditionForK8sNamespaceName -}}
   {{- end }}
@@ -252,9 +251,9 @@ Set name for kube-state-metrics service discovery.
     {{- $scrapeJobsForNamespace := list "kubernetes-nodes-cadvisor" "kubernetes-kube-state-metrics" -}}
     {{- range $index, $scrapeJobName := $scrapeJobsForNamespace -}}
       {{- if eq $index 0 -}}
-        {{- $baseFilterConditionForNamespace = printf "(resource.attributes[\"scraper.job\"] != \"%s\" or (%s))" $scrapeJobName $conditionForNamespace -}}
+        {{- $baseFilterConditionForNamespace = printf "(resource.attributes[\"scraper.job\"] == \"%s\" or (%s))" $scrapeJobName $conditionForNamespace -}}
       {{- else -}}
-        {{- $baseFilterConditionForNamespace = printf "%s and (resource.attributes[\"scraper.job\"] != \"%s\" or (%s))" $baseFilterConditionForNamespace $scrapeJobName $conditionForNamespace -}}
+        {{- $baseFilterConditionForNamespace = printf "%s or (resource.attributes[\"scraper.job\"] == \"%s\" or (%s))" $baseFilterConditionForNamespace $scrapeJobName $conditionForNamespace -}}
       {{- end -}}
     {{- end -}}
 
@@ -268,7 +267,7 @@ Set name for kube-state-metrics service discovery.
       have the relevant namespace info under the "k8s.namespace.name" attribute. Set the namespace
       filter conditions.
     */}}
-    {{- $conditionForK8sNamespaceName := "not (" -}}
+    {{- $conditionForK8sNamespaceName := "" -}}
     {{- range $index, $namespace := $teamInfo.namespaces -}}
       {{- if eq $index 0 -}}
         {{- $conditionForK8sNamespaceName = printf "%sIsMatch(resource.attributes[\"k8s.namespace.name\"], \"%s\")" $conditionForK8sNamespaceName $namespace -}}
@@ -276,7 +275,6 @@ Set name for kube-state-metrics service discovery.
         {{- $conditionForK8sNamespaceName = printf "%s or IsMatch(resource.attributes[\"k8s.namespace.name\"], \"%s\")" $conditionForK8sNamespaceName $namespace -}}
       {{- end -}}
     {{- end -}}
-    {{- $conditionForK8sNamespaceName = printf "%s)" $conditionForK8sNamespaceName -}}
 
     {{/*
       Now, merge these conditions with the scrape job names. Scrape job names are added into
@@ -289,9 +287,9 @@ Set name for kube-state-metrics service discovery.
     {{- end -}}
     {{- range $index, $scrapeJobName := $scrapeJobsForK8sNamespaceName -}}
       {{- if eq $index 0 -}}
-        {{- $baseFilterConditionForK8sNamespaceName = printf "(resource.attributes[\"scraper.job\"] != \"%s\" or (%s))" $scrapeJobName $conditionForK8sNamespaceName -}}
+        {{- $baseFilterConditionForK8sNamespaceName = printf "(resource.attributes[\"scraper.job\"] == \"%s\" or (%s))" $scrapeJobName $conditionForK8sNamespaceName -}}
       {{- else -}}
-        {{- $baseFilterConditionForK8sNamespaceName = printf "%s and (resource.attributes[\"scraper.job\"] != \"%s\" or (%s))" $baseFilterConditionForK8sNamespaceName $scrapeJobName $conditionForK8sNamespaceName -}}
+        {{- $baseFilterConditionForK8sNamespaceName = printf "%s or (resource.attributes[\"scraper.job\"] == \"%s\" or (%s))" $baseFilterConditionForK8sNamespaceName $scrapeJobName $conditionForK8sNamespaceName -}}
       {{- end -}}
     {{- end -}}
 
@@ -299,13 +297,13 @@ Set name for kube-state-metrics service discovery.
       Merge both conditions for "namespace" and "k8s.namespace.name".
       Set the filter condition to the relevant team.
     */}}
-    {{- $baseFilterCondition := printf "%s and %s" $baseFilterConditionForNamespace $baseFilterConditionForK8sNamespaceName -}}
+    {{- $baseFilterCondition := printf "%s or %s" $baseFilterConditionForNamespace $baseFilterConditionForK8sNamespaceName -}}
 
     {{/*
       If it's the opsteam, add the "kubernetes-nodes" job.
     */}}
     {{- if eq $teamName "opsteam" -}}
-      {{ $baseFilterCondition = printf "'%s and (resource.attributes[\"scraper.job\"] != \"kubernetes-nodes\")'" $baseFilterCondition -}}
+      {{ $baseFilterCondition = printf "'%s or (resource.attributes[\"scraper.job\"] != \"kubernetes-nodes\")'" $baseFilterCondition -}}
     {{- else -}}
       {{ $baseFilterCondition = printf "'%s'" $baseFilterCondition -}}
     {{- end -}}
