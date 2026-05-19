@@ -162,7 +162,20 @@ spec:
         endpoint: "${MY_NODE_NAME}:10250"
         insecure_skip_verify: {{ .Values.daemonset.kubeletStats.insecureSkipVerify }}
         metric_groups: {{ .Values.daemonset.kubeletStats.metricGroups | toYaml | nindent 10 }}
-        
+        metrics:
+          k8s.container.cpu_limit_utilization:
+            enabled: true
+          k8s.pod.cpu_limit_utilization:
+            enabled: true
+          k8s.pod.cpu_request_utilization:
+            enabled: true
+          k8s.pod.memory_limit_utilization:
+            enabled: true
+          k8s.pod.memory_request_utilization:
+            enabled: true
+          k8s.pod.volume.usage:
+            enabled: true
+
       {{- with .Values.daemonset.filelog }}
       filelog: {{ toYaml . | nindent 8 }}
       {{- end }}
@@ -271,15 +284,13 @@ spec:
           - key: k8s.pod.name
             value: ${MY_POD_NAME}
             action: upsert
+      batch:
+        send_batch_max_size: 1000
+        timeout: 30s
+        send_batch_size : 800
 
       {{- range $teamName, $teamInfo := $teams }}
         {{- if and (ne $teamInfo.ignore true) (ne (len $teamInfo.namespaces) 0) }}
-      filter/{{ $teamName }}_logs:
-        error_mode: ignore
-        logs:
-          log_record:
-            - {{ $teamInfo.filter }}
-
       filter/{{ $teamName }}_metrics:
         error_mode: ignore
         metrics:
@@ -301,10 +312,31 @@ spec:
          limit_percentage: 80
          spike_limit_percentage: 25
 
-      batch:
-        send_batch_max_size: 1000
-        timeout: 30s
-        send_batch_size : 800
+    connectors:
+      routing/metrics:
+        # ???
+        #default_pipelines: []
+        table:
+      {{- range $teamName, $teamInfo := $teams }}
+        {{- if and (ne $teamInfo.ignore true) (ne (len $teamInfo.namespaces) 0) }}
+          - context: metric
+            condition: {{ $teamInfo.filter }}
+            pipelines:
+              - metrics/{{ $teamName }}
+        {{- end }}
+      {{- end }}
+      routing/logs:
+        # ???
+        #default_pipelines: []
+        table:
+      {{- range $teamName, $teamInfo := $teams }}
+        {{- if and (ne $teamInfo.ignore true) (ne (len $teamInfo.namespaces) 0) }}
+          - context: log
+            condition: {{ $teamInfo.filter }}
+            pipelines:
+              - logs/{{ $teamName }}
+        {{- end }}
+      {{- end }}
 
     exporters:
     
@@ -339,6 +371,29 @@ spec:
             - otlphttp/opsteam
             # - logging
 
+        metrics/ingest:
+          receivers:
+            - prometheus
+          processors:
+            - memory_limiter
+            - resourcedetection
+            - transform/prepare
+            - k8s_attributes
+            - attributes
+            - resource
+          exporters:
+            - routing/metrics
+
+        logs/ingest:
+          receivers: 
+            - filelog
+          processors:
+            - memory_limiter
+            - k8s_attributes
+            - attributes
+          exporters:
+            - routing/logs
+
         {{- range $teamName, $teamInfo := $teams }}
           {{- if ne $teamInfo.ignore true }}
         metrics/kubelet_stats_{{ $teamName }}:
@@ -361,19 +416,11 @@ spec:
             - otlphttp/{{ $teamName }}
             # - logging
 
+
         metrics/{{ $teamName }}:
           receivers:
-            - prometheus
+            - routing/metrics
           processors:
-            - memory_limiter
-            - resourcedetection
-            - transform/prepare
-            - k8s_attributes
-            - attributes
-            - resource
-          {{- if ne (len $teamInfo.namespaces) 0 }}
-            - filter/{{ $teamName }}_metrics
-          {{- end }}
             - batch
           exporters:
             - otlphttp/{{ $teamName }}
@@ -381,14 +428,8 @@ spec:
 
         logs/{{ $teamName }}:
           receivers:
-            - filelog
+            - routing/logs
           processors:
-            - memory_limiter
-            - k8s_attributes
-            - attributes
-          {{- if ne (len $teamInfo.namespaces) 0 }}
-            - filter/{{ $teamName }}_logs
-          {{- end }}
             - batch
           exporters:
             - otlphttp/{{ $teamName }}
