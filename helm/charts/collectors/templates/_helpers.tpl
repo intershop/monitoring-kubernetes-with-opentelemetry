@@ -251,9 +251,9 @@ Set name for kube-state-metrics service discovery.
     {{- $scrapeJobsForNamespace := list "kubernetes-nodes-cadvisor" "kubernetes-kube-state-metrics" -}}
     {{- range $index, $scrapeJobName := $scrapeJobsForNamespace -}}
       {{- if eq $index 0 -}}
-        {{- $baseFilterConditionForNamespace = printf "(resource.attributes[\"scraper.job\"] == \"%s\" or (%s))" $scrapeJobName $conditionForNamespace -}}
+        {{- $baseFilterConditionForNamespace = printf "(resource.attributes[\"scraper.job\"] == \"%s\" and (%s))" $scrapeJobName $conditionForNamespace -}}
       {{- else -}}
-        {{- $baseFilterConditionForNamespace = printf "%s or (resource.attributes[\"scraper.job\"] == \"%s\" or (%s))" $baseFilterConditionForNamespace $scrapeJobName $conditionForNamespace -}}
+        {{- $baseFilterConditionForNamespace = printf "%s or (resource.attributes[\"scraper.job\"] == \"%s\" and (%s))" $baseFilterConditionForNamespace $scrapeJobName $conditionForNamespace -}}
       {{- end -}}
     {{- end -}}
 
@@ -287,9 +287,9 @@ Set name for kube-state-metrics service discovery.
     {{- end -}}
     {{- range $index, $scrapeJobName := $scrapeJobsForK8sNamespaceName -}}
       {{- if eq $index 0 -}}
-        {{- $baseFilterConditionForK8sNamespaceName = printf "(resource.attributes[\"scraper.job\"] == \"%s\" or (%s))" $scrapeJobName $conditionForK8sNamespaceName -}}
+        {{- $baseFilterConditionForK8sNamespaceName = printf "(resource.attributes[\"scraper.job\"] == \"%s\" and (%s))" $scrapeJobName $conditionForK8sNamespaceName -}}
       {{- else -}}
-        {{- $baseFilterConditionForK8sNamespaceName = printf "%s or (resource.attributes[\"scraper.job\"] == \"%s\" or (%s))" $baseFilterConditionForK8sNamespaceName $scrapeJobName $conditionForK8sNamespaceName -}}
+        {{- $baseFilterConditionForK8sNamespaceName = printf "%s or (resource.attributes[\"scraper.job\"] == \"%s\" and (%s))" $baseFilterConditionForK8sNamespaceName $scrapeJobName $conditionForK8sNamespaceName -}}
       {{- end -}}
     {{- end -}}
 
@@ -303,7 +303,7 @@ Set name for kube-state-metrics service discovery.
       If it's the opsteam, add the "kubernetes-nodes" job.
     */}}
     {{- if eq $teamName "opsteam" -}}
-      {{ $baseFilterCondition = printf "'%s or (resource.attributes[\"scraper.job\"] != \"kubernetes-nodes\")'" $baseFilterCondition -}}
+      {{ $baseFilterCondition = printf "'%s or (resource.attributes[\"scraper.job\"] == \"kubernetes-nodes\")'" $baseFilterCondition -}}
     {{- else -}}
       {{ $baseFilterCondition = printf "'%s'" $baseFilterCondition -}}
     {{- end -}}
