@@ -341,15 +341,14 @@ Set name for kube-state-metrics service discovery.
 {{- range $teamName, $teamInfo := $teams -}}
   {{- if and (ne $teamInfo.ignore true) (ne (len $teamInfo.namespaces) 0) -}}
 
-    {{- $conditionForK8sNamespaceName := "not (" -}}
+    {{- $conditionForK8sNamespaceName := "" -}}
     {{- range $index, $namespace := $teamInfo.namespaces -}}
       {{- if eq $index 0 -}}
-        {{- $conditionForK8sNamespaceName = printf "%sIsMatch(resource.attributes[\"k8s.namespace.name\"], \"%s\") or IsMatch(attributes[\"k8s.namespace.name\"], \"%s\")" $conditionForK8sNamespaceName $namespace $namespace -}}
+        {{- $conditionForK8sNamespaceName = printf "%sIsMatch(resource.attributes[\"k8s.namespace.name\"], \"%s\")" $conditionForK8sNamespaceName $namespace -}}
       {{- else -}}
-        {{- $conditionForK8sNamespaceName = printf "%s or IsMatch(resource.attributes[\"k8s.namespace.name\"], \"%s\") or IsMatch(attributes[\"k8s.namespace.name\"], \"%s\")" $conditionForK8sNamespaceName $namespace $namespace -}}
+        {{- $conditionForK8sNamespaceName = printf "%s or IsMatch(resource.attributes[\"k8s.namespace.name\"], \"%s\")" $conditionForK8sNamespaceName $namespace -}}
       {{- end -}}
     {{- end -}}
-    {{- $conditionForK8sNamespaceName = printf "%s)" $conditionForK8sNamespaceName -}}
 
     {{- $_ := set $teamInfo "filter" $conditionForK8sNamespaceName -}}
   {{- end }}

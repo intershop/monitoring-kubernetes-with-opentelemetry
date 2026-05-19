@@ -174,16 +174,6 @@ spec:
             value: ${MY_POD_NAME}
             action: upsert
 
-      {{- range $teamName, $teamInfo := $teams }}
-        {{- if and (ne $teamInfo.ignore true) (ne (len $teamInfo.namespaces) 0) }}
-      filter/{{ $teamName }}:
-        error_mode: ignore
-        logs:
-          log_record:
-            - {{ $teamInfo.filter }}
-        {{- end }}
-      {{- end }}
-
       memory_limiter:
          check_interval: 1s
          limit_percentage: 80
@@ -210,6 +200,21 @@ spec:
       debug:
         verbosity: detailed
 
+    connectors:
+      routing/logs:
+        # ???
+        #default_pipelines: []
+        table:
+      {{- range $teamName, $teamInfo := $teams }}
+        {{- if and (ne $teamInfo.ignore true) (ne (len $teamInfo.namespaces) 0) }}
+          - context: log
+            condition: {{ $teamInfo.filter }}
+            pipelines:
+              - logs/{{ $teamName }}
+        {{- end }}
+      {{- end }}
+
+
     service:
       pipelines:
         metrics/self:
@@ -225,18 +230,20 @@ spec:
           exporters:
             - otlp_http/opsteam
             # - logging
-
-        {{- range $teamName, $teamInfo := $teams }}
-          {{- if ne $teamInfo.ignore true }}
-        logs/{{ $teamName }}:
+        logs/ingest:
           receivers:
             - k8s_events
           processors:
             - memory_limiter
             - attributes
-          {{- if ne (len $teamInfo.namespaces) 0 }}
-            - filter/{{ $teamName }}
-          {{- end }}
+          exporters:
+            - routing/logs
+        {{- range $teamName, $teamInfo := $teams }}
+          {{- if ne $teamInfo.ignore true }}
+        logs/{{ $teamName }}:
+          receivers:
+            - routing/logs
+          processors:
             - batch
           exporters:
             - otlp_http/{{ $teamName }}
