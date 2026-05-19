@@ -582,15 +582,6 @@ spec:
             value: ${MY_POD_NAME}
             action: upsert
 
-      {{- range $teamName, $teamInfo := $teams }}
-        {{- if and (ne $teamInfo.ignore true) (ne (len $teamInfo.namespaces) 0) }}
-      filter/{{ $teamName }}:
-        error_mode: ignore
-        metrics:
-          datapoint:
-            - {{ $teamInfo.filter }}
-        {{- end }}
-      {{- end }}
 
       memory_limiter:
          check_interval: 1s
@@ -618,6 +609,19 @@ spec:
       debug:
         verbosity: detailed
 
+    connectors:
+      routing/metrics:
+        # ???
+        #default_pipelines: []
+        table:
+      {{- range $teamName, $teamInfo := $teams }}
+        {{- if and (ne $teamInfo.ignore true) (ne (len $teamInfo.namespaces) 0) }}
+          - context: metric
+            condition: {{ $teamInfo.filter }}
+            pipelines:
+              - metrics/{{ $teamName }}
+        {{- end }}
+      {{- end }}
 
     service:
       pipelines:
@@ -625,7 +629,6 @@ spec:
         metrics/self:
           receivers:
             - prometheus/self
-
           processors:
             - memory_limiter
             - resourcedetection
@@ -635,14 +638,10 @@ spec:
             - resource
             - attributes/self
             - batch
-
           exporters:
             - otlp_http/opsteam
             # - logging
-
-        {{- range $teamName, $teamInfo := $teams }}
-          {{- if ne $teamInfo.ignore true }}
-        metrics/{{ $teamName }}:
+        metrics/ingest:
           receivers:
             - prometheus
           processors:
@@ -652,9 +651,15 @@ spec:
             - k8s_attributes
             - attributes
             - resource
-          {{- if ne (len $teamInfo.namespaces) 0 }}
-            - filter/{{ $teamName }}
-          {{- end }}
+          exporters:
+            - routing/metrics
+
+        {{- range $teamName, $teamInfo := $teams }}
+          {{- if ne $teamInfo.ignore true }}
+        metrics/{{ $teamName }}:
+          receivers:
+            - routing/metrics
+          processors:
             - batch
           exporters:
             - otlp_http/{{ $teamName }}

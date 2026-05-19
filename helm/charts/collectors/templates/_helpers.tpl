@@ -235,15 +235,14 @@ Set name for kube-state-metrics service discovery.
       have the relevant namespace info under the "namespace" attribute. Set the namespace
       filter conditions.
     */}}
-    {{- $conditionForNamespace := "not (" -}}
+    {{- $conditionForNamespace := "" -}}
     {{- range $index, $namespace := $teamInfo.namespaces -}}
       {{- if eq $index 0 -}}
-        {{- $conditionForNamespace = printf "%sIsMatch(resource.attributes[\"namespace\"], \"%s\") or IsMatch(attributes[\"namespace\"], \"%s\")" $conditionForNamespace $namespace $namespace -}}
+        {{- $conditionForNamespace = printf "%sIsMatch(resource.attributes[\"namespace\"], \"%s\")" $conditionForNamespace $namespace -}}
       {{- else -}}
-        {{- $conditionForNamespace = printf "%s or IsMatch(resource.attributes[\"namespace\"], \"%s\") or IsMatch(attributes[\"namespace\"], \"%s\")" $conditionForNamespace $namespace $namespace -}}
+        {{- $conditionForNamespace = printf "%s or IsMatch(resource.attributes[\"namespace\"], \"%s\")" $conditionForNamespace $namespace -}}
       {{- end -}}
     {{- end -}}
-    {{- $conditionForNamespace = printf "%s)" $conditionForNamespace -}}
 
     {{/*
       Now, merge these conditions with the scrape job names. Scrape job names are added into
@@ -272,9 +271,9 @@ Set name for kube-state-metrics service discovery.
     {{- $conditionForK8sNamespaceName := "not (" -}}
     {{- range $index, $namespace := $teamInfo.namespaces -}}
       {{- if eq $index 0 -}}
-        {{- $conditionForK8sNamespaceName = printf "%sIsMatch(resource.attributes[\"k8s.namespace.name\"], \"%s\") or IsMatch(attributes[\"k8s.namespace.name\"], \"%s\")" $conditionForK8sNamespaceName $namespace $namespace -}}
+        {{- $conditionForK8sNamespaceName = printf "%sIsMatch(resource.attributes[\"k8s.namespace.name\"], \"%s\")" $conditionForK8sNamespaceName $namespace -}}
       {{- else -}}
-        {{- $conditionForK8sNamespaceName = printf "%s or IsMatch(resource.attributes[\"k8s.namespace.name\"], \"%s\") or IsMatch(attributes[\"k8s.namespace.name\"], \"%s\")" $conditionForK8sNamespaceName $namespace $namespace -}}
+        {{- $conditionForK8sNamespaceName = printf "%s or IsMatch(resource.attributes[\"k8s.namespace.name\"], \"%s\")" $conditionForK8sNamespaceName $namespace -}}
       {{- end -}}
     {{- end -}}
     {{- $conditionForK8sNamespaceName = printf "%s)" $conditionForK8sNamespaceName -}}
