@@ -608,12 +608,14 @@ spec:
 
       debug:
         verbosity: detailed
+        sampling_initial: 4
+        sampling_thereafter: 2
 
     connectors:
       routing/metrics:
         # debugging
         default_pipelines:
-          - metrics/opsteam
+          - metrics/log
         table:
       {{- range $teamName, $teamInfo := $teams }}
         {{- if and (ne $teamInfo.ignore true) (ne (len $teamInfo.namespaces) 0) }}
@@ -667,5 +669,10 @@ spec:
             # - logging
           {{- end }}
         {{- end }}
+        metrics/log:
+          receivers:
+            - routing/metrics
+          exporters:
+            - debug
 
 {{- end -}}
