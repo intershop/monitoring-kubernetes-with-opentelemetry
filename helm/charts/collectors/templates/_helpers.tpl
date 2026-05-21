@@ -299,7 +299,7 @@ Set name for kube-state-metrics service discovery.
       Merge both conditions for "namespace" and "k8s.namespace.name".
       Set the filter condition to the relevant team.
     */}}
-    {{- $baseFilterCondition := printf "%s or %s" $baseFilterConditionForNamespace $baseFilterConditionForK8sNamespaceName -}}
+    {{- $baseFilterCondition := printf "%s or %s or %s" $baseFilterConditionForNamespace $baseFilterConditionForK8sNamespaceName $ksmFilterCondition -}}
 
     {{/*
       If it's the opsteam, add the "kubernetes-nodes" job.
