@@ -234,14 +234,16 @@ Set name for kube-state-metrics service discovery.
       have the relevant namespace info under the "namespace" attribute. Set the namespace
       filter conditions.
     */}}
-    {{- $conditionForNamespace := "" -}}
+    {{- $nsArray := "[" -}}
     {{- range $index, $namespace := $teamInfo.namespaces -}}
       {{- if eq $index 0 -}}
-        {{- $conditionForNamespace = printf "%sIsMatch(resource.attributes[\"namespace\"], \"%s\")" $conditionForNamespace $namespace -}}
+        {{- $nsArray = printf "%s\"%s\"" $nsArray $namespace -}}
       {{- else -}}
-        {{- $conditionForNamespace = printf "%s or IsMatch(resource.attributes[\"namespace\"], \"%s\")" $conditionForNamespace $namespace -}}
+        {{- $nsArray = printf "%s,\"%s\"" $nsArray $namespace -}}
       {{- end -}}
     {{- end -}}
+
+    {{- $conditionForNamespace := printf "ContainsValue(%s,resource.attributes[\"namespace\"])" $nsArray -}}
 
     {{/*
       Now, merge these conditions with the scrape job names. Scrape job names are added into
@@ -267,14 +269,7 @@ Set name for kube-state-metrics service discovery.
       have the relevant namespace info under the "k8s.namespace.name" attribute. Set the namespace
       filter conditions.
     */}}
-    {{- $conditionForK8sNamespaceName := "" -}}
-    {{- range $index, $namespace := $teamInfo.namespaces -}}
-      {{- if eq $index 0 -}}
-        {{- $conditionForK8sNamespaceName = printf "%sIsMatch(resource.attributes[\"k8s.namespace.name\"], \"%s\")" $conditionForK8sNamespaceName $namespace -}}
-      {{- else -}}
-        {{- $conditionForK8sNamespaceName = printf "%s or IsMatch(resource.attributes[\"k8s.namespace.name\"], \"%s\")" $conditionForK8sNamespaceName $namespace -}}
-      {{- end -}}
-    {{- end -}}
+    {{- $conditionForK8sNamespaceName := printf "ContainsValue(%s,resource.attributes[\"k8s.namespace.name\"])" $nsArray -}}
 
     {{/*
       Now, merge these conditions with the scrape job names. Scrape job names are added into
