@@ -242,6 +242,7 @@ Set name for kube-state-metrics service discovery.
         {{- $nsArray = printf "%s,\"%s\"" $nsArray $namespace -}}
       {{- end -}}
     {{- end -}}
+    {{- $nsArray = printf "%s]" $nsArray -}}
 
     {{- $conditionForNamespace := printf "ContainsValue(%s,resource.attributes[\"namespace\"])" $nsArray -}}
 
