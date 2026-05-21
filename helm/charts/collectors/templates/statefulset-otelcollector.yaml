@@ -614,8 +614,8 @@ spec:
     connectors:
       routing/metrics:
         # debugging
-        default_pipelines:
-          - metrics/log
+        #default_pipelines:
+        #  - metrics/log
         table:
       {{- range $teamName, $teamInfo := $teams }}
         {{- if and (ne $teamInfo.ignore true) (ne (len $teamInfo.namespaces) 0) }}
