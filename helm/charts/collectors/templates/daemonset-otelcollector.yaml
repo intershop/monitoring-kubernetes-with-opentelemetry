@@ -214,7 +214,7 @@ spec:
       {{- end }}
 
     processors:
-      resourcedetection:
+      resource_detection:
         detectors: [env, azure]
         azure:
           resource_attributes:
@@ -517,7 +517,7 @@ spec:
             - prometheus
           processors:
             - memory_limiter
-            - resourcedetection
+            - resource_detection
             - transform/prepare
             - groupbyattrs
             - transform/ksm
@@ -531,7 +531,7 @@ spec:
             - kubelet_stats
           processors:
             - memory_limiter
-            - resourcedetection
+            - resource_detection
             - k8s_attributes
             - attributes
             - resource

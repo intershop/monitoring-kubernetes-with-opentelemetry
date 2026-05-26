@@ -480,7 +480,7 @@ spec:
 
     processors:
 
-      resourcedetection:
+      resource_detection:
         detectors: [env, azure]
         azure:
           resource_attributes:
@@ -635,7 +635,7 @@ spec:
             - prometheus/self
           processors:
             - memory_limiter
-            - resourcedetection
+            - resource_detection
             - transform/prepare
             - k8s_attributes
             - attributes
@@ -650,7 +650,7 @@ spec:
             - prometheus
           processors:
             - memory_limiter
-            - resourcedetection
+            - resource_detection
             - transform/prepare
             - k8s_attributes
             - attributes
