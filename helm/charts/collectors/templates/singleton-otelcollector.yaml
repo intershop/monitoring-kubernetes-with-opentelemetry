@@ -11,7 +11,7 @@ spec:
   mode: "deployment"
   {{- if ne (len .Values.global.featureGates) 0 -}}
   args:
-    feature-gates: {{- join "," .Values.global.featureGates}}
+    feature-gates: {{ join "," .Values.global.featureGates}}
   {{- end }}
 
   # Replicas -> SHOULD BE 1 (obviously...)
