@@ -9,6 +9,9 @@ clusterName: ""
 ### GLOBAL CONFIG ###
 # Global config for ease of use to apply to all collector types.
 global:
+  featureGates:
+    - processor.k8sattributes.ShareProcessorBetweenPipelines
+
   # New Relic account configuration
   newrelic:
     # Flag to enable global New Relic configuration.
