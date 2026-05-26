@@ -485,7 +485,7 @@ spec:
             - memory_limiter
             - resourcedetection
             - transform/prepare
-            - groupbyattrs
+            #- groupbyattrs
             - transform/ksm
             - k8s_attributes/ksm
             - attributes
