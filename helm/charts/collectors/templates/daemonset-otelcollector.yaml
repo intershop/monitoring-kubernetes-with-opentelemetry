@@ -9,9 +9,9 @@ spec:
 
   # Mode
   mode: "daemonset"
-  {{- if ne (len .Values.global.featureGates) 0 -}}
+  {{- if ne (len .Values.global.featureGates) 0 }}
   args:
-    feature-gates: {{ join "," .Values.global.featureGates}}
+    feature-gates: {{ join "," .Values.global.featureGates | quote }}
   {{- end }}
 
   # Service Account
