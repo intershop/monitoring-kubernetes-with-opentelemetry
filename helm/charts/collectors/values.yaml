@@ -379,7 +379,12 @@ daemonset:
           - ""
         resources:
           - "pods"
+          - "pods/status"
+          - "services"
+          - "endpoints"
           - "namespaces"
+          - "nodes"
+          - "nodes/metrics"
         verbs:
           - "get"
           - "watch"
@@ -387,10 +392,9 @@ daemonset:
       - apiGroups:
           - ""
         resources:
-          - "nodes"
           - "nodes/proxy"
           - "nodes/stats"
-          - "nodes/metrics"
+          - "nodes/spec"
         verbs:
           - "get"
           - "list"
