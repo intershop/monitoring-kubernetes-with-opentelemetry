@@ -133,7 +133,7 @@ spec:
               bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
               kubernetes_sd_configs:
                 - role: node
-              metric_relabel_configs:
+              relabel_configs:
                 - replacement: kubernetes.default.svc.cluster.local:443
                   target_label: __address__
                 - regex: (.+)
@@ -141,9 +141,13 @@ spec:
                   source_labels:
                     - __meta_kubernetes_node_name
                   target_label: __metrics_path__
+                - action: replace
+                  target_label: job_label
+                  replacement: cadvisor
                 - source_labels: [__meta_kubernetes_node_name]
                   regex: ${MY_NODE_NAME}
                   action: keep
+              metric_relabel_configs:
               {{- if ne (len .Values.daemonset.prometheus.cAdvisor.importantMetrics) 0 }}
                 {{ $metrics := "" -}}
                 {{- range $index, $metric := .Values.daemonset.prometheus.cAdvisor.importantMetrics -}}
@@ -159,7 +163,6 @@ spec:
                   replacement: $$1
                   action: keep
               {{- end }}
-              metric_relabel_configs:
                 # Init temporary label is_network_metric for all metrics
                 - source_labels: [__name__]
                   regex: '.*'
