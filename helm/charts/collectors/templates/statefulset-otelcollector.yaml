@@ -9,7 +9,7 @@ spec:
 
   # Mode
   mode: "statefulset"
-  {{- if ne (len .Values.global.featureGates) 0 -}}
+  {{- if ne (len .Values.global.featureGates) 0 }}
   args:
     feature-gates: {{ join "," .Values.global.featureGates}}
   {{- end }}
