@@ -131,12 +131,19 @@ spec:
                 ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
                 insecure_skip_verify: true
               bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
-
-              static_configs:
-                - targets:
-                  - '${MY_NODE_NAME}:10250'
-              metrics_path: /metrics/cadvisor
-
+              kubernetes_sd_configs:
+                - role: node
+              metric_relabel_configs:
+                - replacement: kubernetes.default.svc.cluster.local:443
+                  target_label: __address__
+                - regex: (.+)
+                  replacement: /api/v1/nodes/$${1}/proxy/metrics/cadvisor
+                  source_labels:
+                    - __meta_kubernetes_node_name
+                  target_label: __metrics_path__
+                - source_labels: [__meta_kubernetes_node_name]
+                  regex: ${MY_NODE_NAME}
+                  action: keep
               {{- if ne (len .Values.daemonset.prometheus.cAdvisor.importantMetrics) 0 }}
                 {{ $metrics := "" -}}
                 {{- range $index, $metric := .Values.daemonset.prometheus.cAdvisor.importantMetrics -}}
@@ -146,14 +153,37 @@ spec:
                     {{- $metrics = printf "%s|%s" $metrics $metric -}}
                   {{- end -}}
                 {{- end }}
-              metric_relabel_configs:
                 - source_labels: [__name__]
                   separator: ;
                   regex: {{ $metrics }}
                   replacement: $$1
                   action: keep
               {{- end }}
+              metric_relabel_configs:
+                # Init temporary label is_network_metric for all metrics
+                - source_labels: [__name__]
+                  regex: '.*'
+                  target_label: "is_network_metric"
+                  replacement: "false"
+                - source_labels: [__name__]
+                  regex: '^container_network_.*'
+                  target_label: "is_network_metric"
+                  replacement: "true"
 
+                # Drop metrics without container/image/name for non-network metrics
+                - source_labels: [is_network_metric, container]
+                  regex: '^false;$'
+                  action: drop
+                - source_labels: [is_network_metric, image]
+                  regex: '^false;$'
+                  action: drop
+                - source_labels: [is_network_metric, name]
+                  regex: '^false;$'
+                  action: drop
+
+                # Remove temporary label
+                - regex: 'is_network_metric'
+                  action: labeldrop
       kubelet_stats:
         collection_interval: {{ .Values.daemonset.kubeletStats.collectionInterval }}
         timeout: {{ .Values.daemonset.kubeletStats.timeout }}
@@ -285,11 +315,11 @@ spec:
           #- delete_key(resource.attributes, "persistentvolumeclaim")
       transform/prepare:
         metric_statements:
-          - context: datapoint
-            statements:
-              - set(resource.attributes["k8s.pod.name"], attributes["pod"]) where attributes["pod"] != nil
-              - set(resource.attributes["k8s.namespace.name"], attributes["namespace"]) where attributes["namespace"] != nil
-              - set(resource.attributes["k8s.container.name"], attributes["container"]) where attributes["container"] != nil
+          #- context: datapoint
+          #  statements:
+          #    - set(resource.attributes["k8s.pod.name"], attributes["pod"]) where attributes["pod"] != nil
+          #    - set(resource.attributes["k8s.namespace.name"], attributes["namespace"]) where attributes["namespace"] != nil
+          #    - set(resource.attributes["k8s.container.name"], attributes["container"]) where attributes["container"] != nil
           - statements:
               # copy service.name to scraper.job to replace filtering
               - set(resource.attributes["scraper.job"], resource.attributes["service.name"])
@@ -485,7 +515,7 @@ spec:
             - memory_limiter
             - resourcedetection
             - transform/prepare
-            #- groupbyattrs
+            - groupbyattrs
             - transform/ksm
             - k8s_attributes/ksm
             - attributes
