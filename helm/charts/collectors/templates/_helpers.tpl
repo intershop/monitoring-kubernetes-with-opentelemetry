@@ -264,7 +264,7 @@ Set name for kube-state-metrics service discovery.
       {{- if eq $index 0 -}}
         {{- $baseFilterConditionForDataPointNamespace = printf "(resource.attributes[\"scraper.job\"] == \"%s\" and (%s))" $scrapeJobName $dataPointConditionForNamespace -}}
       {{- else -}}
-        {{- $baseFilterConditionForDataPointNamespace = printf "%s or (resource.attributes[\"scraper.job\"] == \"%s\" and (%s))" $baseFilterConditionForNamespace $scrapeJobName $dataPointConditionForNamespace -}}
+        {{- $baseFilterConditionForDataPointNamespace = printf "%s or (resource.attributes[\"scraper.job\"] == \"%s\" and (%s))" $baseFilterConditionForDataPointNamespace $scrapeJobName $dataPointConditionForNamespace -}}
       {{- end -}}
     {{- end -}}
 
