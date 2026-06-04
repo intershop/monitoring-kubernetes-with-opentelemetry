@@ -9,6 +9,10 @@ spec:
 
   # Mode
   mode: "daemonset"
+  {{- if ne (len .Values.global.featureGates) 0 }}
+  args:
+    feature-gates: {{ join "," .Values.global.featureGates | quote }}
+  {{- end }}
 
   # Service Account
   serviceAccount: {{ include "nrotel.daemonsetName" . }}
@@ -122,7 +126,7 @@ spec:
         
       prometheus:
         config:
-          scrape_configs:        
+          scrape_configs:
             - job_name: 'kubernetes-nodes-cadvisor'
               scrape_interval: {{ .Values.daemonset.prometheus.cAdvisor.scrapeInterval }}
               scrape_timeout: {{ .Values.daemonset.prometheus.cAdvisor.scrapeTimeout }}
@@ -131,12 +135,23 @@ spec:
                 ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
                 insecure_skip_verify: true
               bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
-
-              static_configs:
-                - targets:
-                  - '${MY_NODE_NAME}:10250'
-              metrics_path: /metrics/cadvisor
-
+              kubernetes_sd_configs:
+                - role: node
+              relabel_configs:
+                - replacement: kubernetes.default.svc.cluster.local:443
+                  target_label: __address__
+                - regex: (.+)
+                  replacement: /api/v1/nodes/$${1}/proxy/metrics/cadvisor
+                  source_labels:
+                    - __meta_kubernetes_node_name
+                  target_label: __metrics_path__
+                - action: replace
+                  target_label: job_label
+                  replacement: cadvisor
+                - source_labels: [__meta_kubernetes_node_name]
+                  regex: ${MY_NODE_NAME}
+                  action: keep
+              metric_relabel_configs:
               {{- if ne (len .Values.daemonset.prometheus.cAdvisor.importantMetrics) 0 }}
                 {{ $metrics := "" -}}
                 {{- range $index, $metric := .Values.daemonset.prometheus.cAdvisor.importantMetrics -}}
@@ -146,15 +161,37 @@ spec:
                     {{- $metrics = printf "%s|%s" $metrics $metric -}}
                   {{- end -}}
                 {{- end }}
-              metric_relabel_configs:
                 - source_labels: [__name__]
                   separator: ;
                   regex: {{ $metrics }}
                   replacement: $$1
                   action: keep
               {{- end }}
+                # Init temporary label is_network_metric for all metrics
+                - source_labels: [__name__]
+                  regex: '.*'
+                  target_label: "is_network_metric"
+                  replacement: "false"
+                - source_labels: [__name__]
+                  regex: '^container_network_.*'
+                  target_label: "is_network_metric"
+                  replacement: "true"
 
-      kubeletstats:
+                # Drop metrics without container/image/name for non-network metrics
+                - source_labels: [is_network_metric, container]
+                  regex: '^false;$'
+                  action: drop
+                - source_labels: [is_network_metric, image]
+                  regex: '^false;$'
+                  action: drop
+                - source_labels: [is_network_metric, name]
+                  regex: '^false;$'
+                  action: drop
+
+                # Remove temporary label
+                - regex: 'is_network_metric'
+                  action: labeldrop
+      kubelet_stats:
         collection_interval: {{ .Values.daemonset.kubeletStats.collectionInterval }}
         timeout: {{ .Values.daemonset.kubeletStats.timeout }}
         auth_type: {{ .Values.daemonset.kubeletStats.authType }}
@@ -162,13 +199,26 @@ spec:
         endpoint: "${MY_NODE_NAME}:10250"
         insecure_skip_verify: {{ .Values.daemonset.kubeletStats.insecureSkipVerify }}
         metric_groups: {{ .Values.daemonset.kubeletStats.metricGroups | toYaml | nindent 10 }}
-        
+        metrics:
+          k8s.container.cpu_limit_utilization:
+            enabled: true
+          k8s.pod.cpu_limit_utilization:
+            enabled: true
+          k8s.pod.cpu_request_utilization:
+            enabled: true
+          k8s.pod.memory_limit_utilization:
+            enabled: true
+          k8s.pod.memory_request_utilization:
+            enabled: true
+          k8s.pod.volume.usage:
+            enabled: true
+
       {{- with .Values.daemonset.filelog }}
       filelog: {{ toYaml . | nindent 8 }}
       {{- end }}
 
     processors:
-      resourcedetection:
+      resource_detection:
         detectors: [env, azure]
         azure:
           resource_attributes:
@@ -192,25 +242,102 @@ spec:
               enabled: false
             azure.resourcegroup.name:
               enabled: false
-
+      groupbyattrs:
+        keys:
+          - pod
+          - uid
+          - container
+          - daemonset
+          - replicaset
+          - statefulset
+          - deployment
+          - cronjob
+          - configmap
+          - job
+          - job_name
+          - horizontalpodautoscaler
+          - persistentvolume
+          - persistentvolumeclaim
+          - endpoint
+          - mutatingwebhookconfiguration
+          - validatingwebhookconfiguration
+          - lease
+          - storageclass
+          - secret
+          - service
+          - resourcequota
+          - node
+          - namespace
+      transform/ksm:
+        metric_statements:
+          - delete_key(resource.attributes, "k8s.node.name")
+          - delete_key(resource.attributes, "k8s.namespace.name")
+          - delete_key(resource.attributes, "k8s.pod.uid")
+          - delete_key(resource.attributes, "k8s.pod.name")
+          - delete_key(resource.attributes, "k8s.container.name")
+          - delete_key(resource.attributes, "k8s.replicaset.name")
+          - delete_key(resource.attributes, "k8s.deployment.name")
+          - delete_key(resource.attributes, "k8s.statefulset.name")
+          - delete_key(resource.attributes, "k8s.daemonset.name")
+          - delete_key(resource.attributes, "k8s.job.name")
+          - delete_key(resource.attributes, "k8s.cronjob.name")
+          - delete_key(resource.attributes, "k8s.replicationcontroller.name")
+          - delete_key(resource.attributes, "k8s.hpa.name")
+          - delete_key(resource.attributes, "k8s.resourcequota.name")
+          - delete_key(resource.attributes, "k8s.volume.name")
+          - set(resource.attributes["k8s.pod.uid"], resource.attributes["uid"])
+          - set(resource.attributes["k8s.node.name"], resource.attributes["node"])
+          - set(resource.attributes["k8s.namespace.name"], resource.attributes["namespace"])
+          - set(resource.attributes["k8s.pod.name"], resource.attributes["pod"])
+          - set(resource.attributes["k8s.container.name"], resource.attributes["container"])
+          - set(resource.attributes["k8s.replicaset.name"], resource.attributes["replicaset"])
+          - set(resource.attributes["k8s.deployment.name"], resource.attributes["deployment"])
+          - set(resource.attributes["k8s.statefulset.name"], resource.attributes["statefulset"])
+          - set(resource.attributes["k8s.daemonset.name"], resource.attributes["daemonset"])
+          - set(resource.attributes["k8s.job.name"], resource.attributes["job_name"])
+          - set(resource.attributes["k8s.cronjob.name"], resource.attributes["cronjob"])
+          - set(resource.attributes["k8s.replicationcontroller.name"], resource.attributes["replicationcontroller"])
+          - set(resource.attributes["k8s.hpa.name"], resource.attributes["horizontalpodautoscaler"])
+          - set(resource.attributes["k8s.resourcequota.name"], resource.attributes["resourcequota"])
+          - set(resource.attributes["k8s.volume.name"], resource.attributes["volumename"])
+          - set(resource.attributes["k8s.volume.name"], resource.attributes["persistentvolume"])
+          - set(resource.attributes["k8s.pvc.name"], resource.attributes["persistentvolumeclaim"])
+          # FIXME: those are mandatory for the current dashboards
+          #- delete_key(resource.attributes, "uid")
+          #- delete_key(resource.attributes, "node")
+          #- delete_key(resource.attributes, "namespace")
+          #- delete_key(resource.attributes, "pod")
+          #- delete_key(resource.attributes, "container")
+          #- delete_key(resource.attributes, "replicaset")
+          #- delete_key(resource.attributes, "deployment")
+          #- delete_key(resource.attributes, "statefulset")
+          #- delete_key(resource.attributes, "daemonset")
+          #- delete_key(resource.attributes, "job_name")
+          #- delete_key(resource.attributes, "cronjob")
+          #- delete_key(resource.attributes, "replicationcontroller")
+          #- delete_key(resource.attributes, "horizontalpodautoscaler")
+          #- delete_key(resource.attributes, "resourcequota")
+          #- delete_key(resource.attributes, "volumename")
+          #- delete_key(resource.attributes, "persistentvolume")
+          #- delete_key(resource.attributes, "persistentvolumeclaim")
       transform/prepare:
         metric_statements:
-          - context: datapoint
-            statements:
-              - set(resource.attributes["k8s.pod.name"], attributes["pod"]) where attributes["pod"] != nil
-              - set(resource.attributes["k8s.namespace.name"], attributes["namespace"]) where attributes["namespace"] != nil
-              - set(resource.attributes["k8s.container.name"], attributes["container"]) where attributes["container"] != nil
+          #- context: datapoint
+          #  statements:
+          #    - set(resource.attributes["k8s.pod.name"], attributes["pod"]) where attributes["pod"] != nil
+          #    - set(resource.attributes["k8s.namespace.name"], attributes["namespace"]) where attributes["namespace"] != nil
+          #    - set(resource.attributes["k8s.container.name"], attributes["container"]) where attributes["container"] != nil
           - statements:
               # copy service.name to scraper.job to replace filtering
               - set(resource.attributes["scraper.job"], resource.attributes["service.name"])
-              # Delete attributes added by prometheus-receiver so that k8sattributes processor can re-add them.
+              # Delete attributes added by prometheus-receiver so that k8s_attributes processor can re-add them.
               # See https://github.com/open-telemetry/opentelemetry-collector-contrib/issues/41139
               - delete_key(resource.attributes, "service.name")
               - delete_key(resource.attributes, "service.namespace")
               - delete_key(resource.attributes, "service.version")
               - delete_key(resource.attributes, "service.instance.id")
 
-      k8sattributes:
+      k8s_attributes:
         extract:
           metadata:
           - k8s.namespace.name
@@ -234,7 +361,6 @@ spec:
           {{- with .Values.daemonset.processors.k8sattributes.annotations }}
           annotations: {{ toYaml . | nindent 12 }}
           {{- end }}
-
         passthrough: false
         pod_association:
         - sources:
@@ -245,6 +371,47 @@ spec:
             name: k8s.pod.uid
         - sources:
           - from: connection
+      cumulativetodelta: {}
+
+      k8s_attributes/ksm:
+        # Metadata attached by this processor is reliant on the uid & pod name. This would be sufficient for most types
+        # of metrics but there are cases of metrics where a uid would not be present and thus metadata would
+        # not be attached. To address cases like these, metadata attributes must be annotated in a different manner
+        # such as by preserving some of the attributes presented by KSM.
+        auth_type: "serviceAccount"
+        passthrough: false
+        filter:
+          node_from_env_var: MY_NODE_NAME
+        extract:
+          metadata:
+            - k8s.deployment.name
+            - k8s.daemonset.name
+            - k8s.namespace.name
+            - k8s.node.name
+            - k8s.pod.start_time
+            - k8s.replicaset.name
+            - k8s.statefulset.name
+            - k8s.cronjob.name
+            - k8s.job.name
+            - service.namespace
+            - service.name
+            - service.version
+            - service.instance.id
+
+          {{- with .Values.daemonset.processors.k8sattributes.labels }}
+          labels: {{ toYaml . | nindent 12 }}
+          {{- end }}
+
+          {{- with .Values.daemonset.processors.k8sattributes.annotations }}
+          annotations: {{ toYaml . | nindent 12 }}
+          {{- end }}
+        pod_association:
+          - sources:
+            - from: resource_attribute
+              name: k8s.pod.uid
+          - sources:
+            - from: resource_attribute
+              name: k8s.pod.name
       attributes:
         actions:
           - key: k8s.cluster.name
@@ -271,25 +438,13 @@ spec:
           - key: k8s.pod.name
             value: ${MY_POD_NAME}
             action: upsert
-
-      {{- range $teamName, $teamInfo := $teams }}
-        {{- if and (ne $teamInfo.ignore true) (ne (len $teamInfo.namespaces) 0) }}
-      filter/{{ $teamName }}_logs:
-        error_mode: ignore
-        logs:
-          log_record:
-            - {{ $teamInfo.filter }}
-
-      filter/{{ $teamName }}_metrics:
-        error_mode: ignore
-        metrics:
-          datapoint:
-            - {{ $teamInfo.filter }}
-        {{- end }}
-      {{- end }}
+      batch:
+        send_batch_max_size: 1000
+        timeout: 30s
+        send_batch_size : 800
 
       {{- if ne (len .Values.daemonset.kubeletStats.importantMetrics) 0 }}
-      filter/kubeletstats_metrics:
+      filter/kubelet_stats_metrics:
         error_mode: ignore
         metrics:
           metric:
@@ -301,16 +456,38 @@ spec:
          limit_percentage: 80
          spike_limit_percentage: 25
 
-      batch:
-        send_batch_max_size: 1000
-        timeout: 30s
-        send_batch_size : 800
+    connectors:
+      routing/metrics:
+        # ???
+        #default_pipelines:
+        #  - metrics/log
+        table:
+      {{- range $teamName, $teamInfo := $teams }}
+        {{- if and (ne $teamInfo.ignore true) (ne (len $teamInfo.namespaces) 0) }}
+          - context: metric
+            condition: {{ $teamInfo.filter }}
+            pipelines:
+              - metrics/{{ $teamName }}
+        {{- end }}
+      {{- end }}
+      routing/logs:
+        # ???
+        #default_pipelines: []
+        table:
+      {{- range $teamName, $teamInfo := $teams }}
+        {{- if and (ne $teamInfo.ignore true) (ne (len $teamInfo.namespaces) 0) }}
+          - context: log
+            condition: {{ $teamInfo.filter }}
+            pipelines:
+              - logs/{{ $teamName }}
+        {{- end }}
+      {{- end }}
 
     exporters:
     
       {{- range $teamName, $teamInfo := $teams }}
         {{- if ne $teamInfo.ignore true }}
-      otlphttp/{{ $teamName }}:
+      otlp_http/{{ $teamName }}:
         endpoint: {{ "${" }}{{ $teamName }}_endpoint}
         tls:
           insecure: false
@@ -331,69 +508,77 @@ spec:
           processors:
             - memory_limiter
             - transform/prepare
-            - k8sattributes
+            - k8s_attributes
             - attributes
             - attributes/self
             - batch
           exporters:
-            - otlphttp/opsteam
+            - otlp_http/opsteam
             # - logging
 
-        {{- range $teamName, $teamInfo := $teams }}
-          {{- if ne $teamInfo.ignore true }}
-        metrics/kubeletstats_{{ $teamName }}:
-          receivers:
-            - kubeletstats
-          processors:
-            - memory_limiter
-            - resourcedetection
-            - k8sattributes
-            - attributes
-            - resource
-          {{- if ne (len $.Values.daemonset.kubeletStats.importantMetrics) 0 }}
-            - filter/kubeletstats_metrics
-          {{- end }}
-          {{- if ne (len $teamInfo.namespaces) 0 }}
-            - filter/{{ $teamName }}_metrics
-          {{- end }}
-            - batch
-          exporters:
-            - otlphttp/{{ $teamName }}
-            # - logging
-
-        metrics/{{ $teamName }}:
+        metrics/ingest:
           receivers:
             - prometheus
           processors:
             - memory_limiter
-            - resourcedetection
+            - resource_detection
             - transform/prepare
-            - k8sattributes
+            - groupbyattrs
+            - transform/ksm
+            - k8s_attributes/ksm
+            - attributes
+            - cumulativetodelta
+          exporters:
+            - routing/metrics
+        metrics/kubelet_stats_ingest:
+          receivers:
+            - kubelet_stats
+          processors:
+            - memory_limiter
+            - resource_detection
+            - k8s_attributes
             - attributes
             - resource
-          {{- if ne (len $teamInfo.namespaces) 0 }}
-            - filter/{{ $teamName }}_metrics
+          {{- if ne (len $.Values.daemonset.kubeletStats.importantMetrics) 0 }}
+            - filter/kubelet_stats_metrics
           {{- end }}
-            - batch
           exporters:
-            - otlphttp/{{ $teamName }}
-            # - logging
+            - routing/metrics
 
-        logs/{{ $teamName }}:
-          receivers:
+        logs/ingest:
+          receivers: 
             - filelog
           processors:
             - memory_limiter
-            - k8sattributes
+            - k8s_attributes
             - attributes
-          {{- if ne (len $teamInfo.namespaces) 0 }}
-            - filter/{{ $teamName }}_logs
-          {{- end }}
+          exporters:
+            - routing/logs
+
+        {{- range $teamName, $teamInfo := $teams }}
+          {{- if ne $teamInfo.ignore true }}
+        metrics/{{ $teamName }}:
+          receivers:
+            - routing/metrics
+          processors:
             - batch
           exporters:
-            - otlphttp/{{ $teamName }}
+            - otlp_http/{{ $teamName }}
+            # - logging
+        logs/{{ $teamName }}:
+          receivers:
+            - routing/logs
+          processors:
+            - batch
+          exporters:
+            - otlp_http/{{ $teamName }}
             # - logging
           {{- end }}
         {{- end }}
+        metrics/log:
+          receivers:
+            - routing/metrics
+          exporters:
+            - debug
 
 {{- end -}}

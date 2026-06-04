@@ -9,6 +9,10 @@ spec:
 
   # Mode
   mode: "deployment"
+  {{- if ne (len .Values.global.featureGates) 0 }}
+  args:
+    feature-gates: {{ join "," .Values.global.featureGates | quote }}
+  {{- end }}
 
   # Service Account
   serviceAccount: {{ include "nrotel.deploymentName" . }}
@@ -130,13 +134,13 @@ spec:
           - statements:
               # copy service.name to scraper.job to replace filtering functionality
               - set(resource.attributes["scraper.job"], resource.attributes["service.name"])
-              # Delete atributes added by prometheus-receiver so that k8sattributes processor can re-add them.
+              # Delete atributes added by prometheus-receiver so that k8s_attributes processor can re-add them.
               # See https://github.com/open-telemetry/opentelemetry-collector-contrib/issues/41139
               - delete_key(resource.attributes, "service.name")
               - delete_key(resource.attributes, "service.namespace")
               - delete_key(resource.attributes, "service.version")
               - delete_key(resource.attributes, "service.instance.id")
-      k8sattributes:
+      k8s_attributes:
         extract:
 
           metadata:
@@ -194,19 +198,6 @@ spec:
             value: ${MY_POD_NAME}
             action: upsert
 
-      {{- range $teamName, $teamInfo := $teams }}
-        {{- if and (ne $teamInfo.ignore true) (ne (len $teamInfo.namespaces) 0) }}
-      filter/{{ $teamName }}:
-        error_mode: ignore
-        metrics:
-          datapoint:
-            - {{ $teamInfo.filter }}
-        logs:
-          log_record:
-            - {{ $teamInfo.filter }}
-        {{- end }}
-      {{- end }}
-
       memory_limiter:
          check_interval: 1s
          limit_percentage: 80
@@ -216,6 +207,33 @@ spec:
         send_batch_max_size: 1000
         timeout: 30s
         send_batch_size : 800
+
+    connectors:
+      routing/metrics:
+        # ???
+        #default_pipelines: []
+        table:
+      {{- range $teamName, $teamInfo := $teams }}
+        {{- if and (ne $teamInfo.ignore true) (ne (len $teamInfo.namespaces) 0) }}
+          - context: metric
+            condition: {{ $teamInfo.filter }}
+            pipelines:
+              - metrics/{{ $teamName }}
+        {{- end }}
+      {{- end }}
+      routing/logs:
+        # ???
+        #default_pipelines: []
+        table:
+      {{- range $teamName, $teamInfo := $teams }}
+        {{- if and (ne $teamInfo.ignore true) (ne (len $teamInfo.namespaces) 0) }}
+          - context: log
+            condition: {{ $teamInfo.filter }}
+            pipelines:
+              - logs/{{ $teamName }}
+        {{- end }}
+      {{- end }}
+
 
     exporters:
       loadbalancing:
@@ -229,7 +247,7 @@ spec:
 
       {{- range $teamName, $teamInfo := $teams }}
         {{- if ne $teamInfo.ignore true }}
-      otlphttp/{{ $teamName }}:
+      otlp_http/{{ $teamName }}:
         endpoint: {{ "${" }}{{ $teamName }}_endpoint}
         tls:
           insecure: false
@@ -250,31 +268,34 @@ spec:
           processors:
             - memory_limiter
             - transform/prepare
-            - k8sattributes
+            - k8s_attributes
             - attributes
             - attributes/self
             - batch
           exporters:
-            - otlphttp/opsteam
+            - otlp_http/opsteam
             # - logging
 
         {{- if eq .Values.deployment.receiverPipeline.metrics.enabled true }}
-          {{- range $teamName, $teamInfo := $teams }}
-            {{- if ne $teamInfo.ignore true }}
-        metrics/{{ $teamName }}:
+        metrics/ingest:
           receivers:
             - otlp
           processors:
             - memory_limiter
             - transform/prepare
-            - k8sattributes
+            - k8s_attributes
             - attributes
-          {{- if ne (len $teamInfo.namespaces) 0 }}
-            - filter/{{ $teamName }}
-          {{- end }}
+          exporters:
+            - routing/metrics
+          {{- range $teamName, $teamInfo := $teams }}
+            {{- if ne $teamInfo.ignore true }}
+        metrics/{{ $teamName }}:
+          receivers:
+            - routing/metrics
+          processors:
             - batch
           exporters:
-            - otlphttp/{{ $teamName }}
+            - otlp_http/{{ $teamName }}
             # - logging
             {{- end }}
           {{- end }}
@@ -286,7 +307,7 @@ spec:
             - otlp
           processors:
             - memory_limiter
-            - k8sattributes
+            - k8s_attributes
             - attributes
             - batch
           exporters:
@@ -295,21 +316,25 @@ spec:
         {{- end }}
 
         {{- if eq .Values.deployment.receiverPipeline.logs.enabled true }}
-          {{- range $teamName, $teamInfo := $teams }}
-            {{- if ne $teamInfo.ignore true }}
-        logs/{{ $teamName }}:
+        logs/ingest:
           receivers:
             - otlp
           processors:
             - memory_limiter
-            - k8sattributes
+            - k8s_attributes
             - attributes
-          {{- if ne (len $teamInfo.namespaces) 0 }}
-            - filter/{{ $teamName }}
-          {{- end }}
+          exporters:
+            - routing/logs
+
+          {{- range $teamName, $teamInfo := $teams }}
+            {{- if ne $teamInfo.ignore true }}
+        logs/{{ $teamName }}:
+          receivers:
+            - routing/logs
+          processors:
             - batch
           exporters:
-            - otlphttp/{{ $teamName }}
+            - otlp_http/{{ $teamName }}
             # - logging
             {{- end }}
           {{- end }}

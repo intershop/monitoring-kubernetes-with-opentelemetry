@@ -9,6 +9,10 @@ spec:
 
   # Mode
   mode: "statefulset"
+  {{- if ne (len .Values.global.featureGates) 0 }}
+  args:
+    feature-gates: {{ join "," .Values.global.featureGates | quote }}
+  {{- end }}
 
   # Service Account
   serviceAccount: {{ include "nrotel.statefulsetName" . }}
@@ -480,7 +484,7 @@ spec:
 
     processors:
 
-      resourcedetection:
+      resource_detection:
         detectors: [env, azure]
         azure:
           resource_attributes:
@@ -509,14 +513,14 @@ spec:
           - statements:
               # copy service.name to scraper.job to replace filtering functionality
               - set(resource.attributes["scraper.job"], resource.attributes["service.name"])
-              # Delete atributes added by prometheus-receiver so that k8sattributes processor can re-add them.
+              # Delete atributes added by prometheus-receiver so that k8s_attributes processor can re-add them.
               # See https://github.com/open-telemetry/opentelemetry-collector-contrib/issues/41139
               - delete_key(resource.attributes, "service.name")
               - delete_key(resource.attributes, "service.namespace")
               - delete_key(resource.attributes, "service.version")
               - delete_key(resource.attributes, "service.instance.id")
 
-      k8sattributes:
+      k8s_attributes:
         extract:
 
           metadata:
@@ -582,15 +586,6 @@ spec:
             value: ${MY_POD_NAME}
             action: upsert
 
-      {{- range $teamName, $teamInfo := $teams }}
-        {{- if and (ne $teamInfo.ignore true) (ne (len $teamInfo.namespaces) 0) }}
-      filter/{{ $teamName }}:
-        error_mode: ignore
-        metrics:
-          datapoint:
-            - {{ $teamInfo.filter }}
-        {{- end }}
-      {{- end }}
 
       memory_limiter:
          check_interval: 1s
@@ -606,7 +601,7 @@ spec:
 
       {{- range $teamName, $teamInfo := $teams }}
         {{- if ne $teamInfo.ignore true }}
-      otlphttp/{{ $teamName }}:
+      otlp_http/{{ $teamName }}:
         endpoint: {{ "${" }}{{ $teamName }}_endpoint}
         tls:
           insecure: false
@@ -617,6 +612,23 @@ spec:
 
       debug:
         verbosity: detailed
+        sampling_initial: 4
+        sampling_thereafter: 2
+
+    connectors:
+      routing/metrics:
+        # debugging
+        #default_pipelines:
+        #  - metrics/log
+        table:
+      {{- range $teamName, $teamInfo := $teams }}
+        {{- if and (ne $teamInfo.ignore true) (ne (len $teamInfo.namespaces) 0) }}
+          - context: datapoint
+            condition: {{ $teamInfo.filter }}
+            pipelines:
+              - metrics/{{ $teamName }}
+        {{- end }}
+      {{- end }}
 
 
     service:
@@ -625,41 +637,47 @@ spec:
         metrics/self:
           receivers:
             - prometheus/self
-
           processors:
             - memory_limiter
-            - resourcedetection
+            - resource_detection
             - transform/prepare
-            - k8sattributes
+            - k8s_attributes
             - attributes
             - resource
             - attributes/self
             - batch
-
           exporters:
-            - otlphttp/opsteam
+            - otlp_http/opsteam
             # - logging
+        metrics/ingest:
+          receivers:
+            - prometheus
+          processors:
+            - memory_limiter
+            - resource_detection
+            - transform/prepare
+            - k8s_attributes
+            - attributes
+            - resource
+          exporters:
+            - routing/metrics
 
         {{- range $teamName, $teamInfo := $teams }}
           {{- if ne $teamInfo.ignore true }}
         metrics/{{ $teamName }}:
           receivers:
-            - prometheus
+            - routing/metrics
           processors:
-            - memory_limiter
-            - resourcedetection
-            - transform/prepare
-            - k8sattributes
-            - attributes
-            - resource
-          {{- if ne (len $teamInfo.namespaces) 0 }}
-            - filter/{{ $teamName }}
-          {{- end }}
             - batch
           exporters:
-            - otlphttp/{{ $teamName }}
+            - otlp_http/{{ $teamName }}
             # - logging
           {{- end }}
         {{- end }}
+        metrics/log:
+          receivers:
+            - routing/metrics
+          exporters:
+            - debug
 
 {{- end -}}

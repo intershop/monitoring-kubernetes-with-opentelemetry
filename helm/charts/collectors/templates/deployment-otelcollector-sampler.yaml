@@ -9,6 +9,10 @@ spec:
 
   # Mode
   mode: "deployment"
+  {{- if ne (len .Values.global.featureGates) 0 }}
+  args:
+    feature-gates: {{ join "," .Values.global.featureGates | quote }}
+  {{- end }}
 
   # Service Account
   serviceAccount: {{ include "nrotel.deploymentName" . }}
@@ -149,15 +153,6 @@ spec:
           - statements:
               # copy service.name to scraper.job to replace filtering functionality
               - set(resource.attributes["scraper.job"], resource.attributes["service.name"])
-      {{- range $teamName, $teamInfo := $teams }}
-        {{- if and (ne $teamInfo.ignore true) (ne (len $teamInfo.namespaces) 0) }}
-      filter/{{ $teamName }}:
-        error_mode: ignore
-        traces:
-          span:
-            - {{ $teamInfo.filter }}
-        {{- end }}
-      {{- end }}
 
       memory_limiter:
          check_interval: 1s
@@ -169,11 +164,26 @@ spec:
         timeout: 30s
         send_batch_size : 800
 
+    connectors:
+      routing/traces:
+        # ???
+        #default_pipelines: []
+        table:
+      {{- range $teamName, $teamInfo := $teams }}
+        {{- if and (ne $teamInfo.ignore true) (ne (len $teamInfo.namespaces) 0) }}
+          - context: span
+            condition: {{ $teamInfo.filter }}
+            pipelines:
+              - traces/{{ $teamName }}
+        {{- end }}
+      {{- end }}
+
+
     exporters:
 
       {{- range $teamName, $teamInfo := $teams }}
         {{- if ne $teamInfo.ignore true }}
-      otlphttp/{{ $teamName }}:
+      otlp_http/{{ $teamName }}:
         endpoint: {{ "${" }}{{ $teamName }}_endpoint}
         tls:
           insecure: false
@@ -197,23 +207,27 @@ spec:
             - attributes/self
             - batch
           exporters:
-            - otlphttp/opsteam
+            - otlp_http/opsteam
             # - logging
 
-        {{- range $teamName, $teamInfo := $teams }}
-          {{- if ne $teamInfo.ignore true }}
-        traces/{{ $teamName }}:
+        traces/ingress:
           receivers:
             - otlp
           processors:
             - memory_limiter
             - attributes
-          {{- if ne (len $teamInfo.namespaces) 0 }}
-            - filter/{{ $teamName }}
-          {{- end }}
+          exporters:
+            - routing/traces
+
+        {{- range $teamName, $teamInfo := $teams }}
+          {{- if ne $teamInfo.ignore true }}
+        traces/{{ $teamName }}:
+          receivers:
+            - routing/traces
+          processors:
             - batch
           exporters:
-            - otlphttp/{{ $teamName }}
+            - otlp_http/{{ $teamName }}
             # - logging
           {{- end }}
         {{- end }}

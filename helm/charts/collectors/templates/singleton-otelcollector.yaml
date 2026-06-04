@@ -9,6 +9,10 @@ spec:
 
   # Mode
   mode: "deployment"
+  {{- if ne (len .Values.global.featureGates) 0 }}
+  args:
+    feature-gates: {{ join "," .Values.global.featureGates | quote }}
+  {{- end }}
 
   # Replicas -> SHOULD BE 1 (obviously...)
   replicas: 1
@@ -112,20 +116,31 @@ spec:
 
       k8s_events: {}
 
+      k8s_cluster:
+        collection_interval: 30s
+        node_conditions_to_report: [Ready, DiskPressure, MemoryPressure, PIDPressure, NetworkUnavailable]
+        allocatable_types_to_report: [cpu, memory]
+        distribution: kubernetes
+        metrics:
+          k8s.node.condition:
+            enabled: true
+          k8s.pod.status_reason:
+            enabled: true
+
     processors:
       transform/prepare:
         metric_statements:
           - statements:
               # copy service.name to scraper.job to replace filtering functionality
               - set(resource.attributes["scraper.job"], resource.attributes["service.name"])
-              # Delete atributes added by prometheus-receiver so that k8sattributes processor can re-add them.
+              # Delete atributes added by prometheus-receiver so that k8s_attributes processor can re-add them.
               # See https://github.com/open-telemetry/opentelemetry-collector-contrib/issues/41139
               - delete_key(resource.attributes, "service.name")
               - delete_key(resource.attributes, "service.namespace")
               - delete_key(resource.attributes, "service.version")
               - delete_key(resource.attributes, "service.instance.id")
 
-      k8sattributes:
+      k8s_attributes:
         extract:
 
           metadata:
@@ -174,16 +189,6 @@ spec:
             value: ${MY_POD_NAME}
             action: upsert
 
-      {{- range $teamName, $teamInfo := $teams }}
-        {{- if and (ne $teamInfo.ignore true) (ne (len $teamInfo.namespaces) 0) }}
-      filter/{{ $teamName }}:
-        error_mode: ignore
-        logs:
-          log_record:
-            - {{ $teamInfo.filter }}
-        {{- end }}
-      {{- end }}
-
       memory_limiter:
          check_interval: 1s
          limit_percentage: 80
@@ -198,7 +203,7 @@ spec:
 
       {{- range $teamName, $teamInfo := $teams }}
         {{- if ne $teamInfo.ignore true }}
-      otlphttp/{{ $teamName }}:
+      otlp_http/{{ $teamName }}:
         endpoint: {{ "${" }}{{ $teamName }}_endpoint}
         tls:
           insecure: false
@@ -210,6 +215,22 @@ spec:
       debug:
         verbosity: detailed
 
+    connectors:
+      routing/logs:
+        # ???
+        #default_pipelines:
+        #  - logs/debug
+        table:
+      {{- range $teamName, $teamInfo := $teams }}
+        {{- if and (ne $teamInfo.ignore true) (ne (len $teamInfo.namespaces) 0) }}
+          - context: log
+            condition: {{ $teamInfo.filter }}
+            pipelines:
+              - logs/{{ $teamName }}
+        {{- end }}
+      {{- end }}
+
+
     service:
       pipelines:
         metrics/self:
@@ -218,30 +239,52 @@ spec:
           processors:
             - memory_limiter
             - transform/prepare
-            - k8sattributes
+            - k8s_attributes
             - attributes
             - attributes/self
             - batch
           exporters:
-            - otlphttp/opsteam
+            - otlp_http/opsteam
             # - logging
+        metrics/k8scluster:
+          receivers:
+            - k8s_cluster
+          processors:
+            - memory_limiter
+            - transform/prepare
+            - k8s_attributes
+            - attributes
+            - batch
+          exporters:
+            - otlp_http/opsteam
 
-        {{- range $teamName, $teamInfo := $teams }}
-          {{- if ne $teamInfo.ignore true }}
-        logs/{{ $teamName }}:
+        logs/ingest:
           receivers:
             - k8s_events
           processors:
             - memory_limiter
             - attributes
-          {{- if ne (len $teamInfo.namespaces) 0 }}
-            - filter/{{ $teamName }}
-          {{- end }}
+          exporters:
+            - routing/logs
+        {{- range $teamName, $teamInfo := $teams }}
+          {{- if ne $teamInfo.ignore true }}
+        logs/{{ $teamName }}:
+          receivers:
+            - routing/logs
+          processors:
             - batch
           exporters:
-            - otlphttp/{{ $teamName }}
+            - otlp_http/{{ $teamName }}
             # - logging
           {{- end }}
         {{- end }}
+        logs/debug:
+          receivers:
+            - routing/logs
+          processors:
+            - batch
+          exporters:
+            - debug
+
 
 {{- end -}}
