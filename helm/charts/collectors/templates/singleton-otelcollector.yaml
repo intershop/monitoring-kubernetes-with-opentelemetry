@@ -126,7 +126,10 @@ spec:
             enabled: true
           k8s.pod.status_reason:
             enabled: true
-
+          k8s.container.status.state:
+            enabled: true
+          k8s.container.status.reason:
+            enabled: true
     processors:
       transform/prepare:
         metric_statements:
@@ -199,6 +202,14 @@ spec:
         timeout: 30s
         send_batch_size : 800
 
+      {{- if ne (len .Values.singleton.k8scluster.importantMetrics) 0 }}
+      filter/k8scluster:
+        error_mode: ignore
+        metrics:
+          metric:
+            - not (IsMatch(name, "^({{- range $i, $m := .Values.singleton.k8scluster.importantMetrics -}}{{ if ne $i 0 }}|{{ end }}{{ $m | replace "." "\\\\." | replace "*" ".*" }}{{- end }})$"))
+      {{- end }}
+
     exporters:
 
       {{- range $teamName, $teamInfo := $teams }}
@@ -254,6 +265,9 @@ spec:
             - transform/prepare
             - k8s_attributes
             - attributes
+          {{- if ne (len $.Values.singleton.k8scluster.importantMetrics) 0 }}
+            - filter/k8scluster
+          {{- end }}
             - batch
           exporters:
             - otlp_http/opsteam
