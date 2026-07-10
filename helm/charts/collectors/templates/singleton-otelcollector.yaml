@@ -244,6 +244,19 @@ spec:
         {{- end }}
       {{- end }}
 
+      routing/metrics:
+        default_pipelines:
+          - metrics/opsteam
+        table:
+      {{- range $teamName, $teamInfo := $teams }}
+        {{- if and (ne $teamInfo.ignore true) (ne (len $teamInfo.namespaces) 0) }}
+          - context: datapoint
+            condition: {{ $teamInfo.filter }}
+            pipelines:
+              - metrics/{{ $teamName }}
+        {{- end }}
+      {{- end }}
+
 
     service:
       pipelines:
@@ -271,9 +284,8 @@ spec:
           {{- if ne (len $.Values.singleton.k8scluster.importantMetrics) 0 }}
             - filter/k8scluster
           {{- end }}
-            - batch
           exporters:
-            - otlp_http/opsteam
+            - routing/metrics
 
         logs/ingest:
           receivers:
@@ -288,6 +300,14 @@ spec:
         logs/{{ $teamName }}:
           receivers:
             - routing/logs
+          processors:
+            - batch
+          exporters:
+            - otlp_http/{{ $teamName }}
+            # - logging
+        metrics/{{ $teamName }}:
+          receivers:
+            - routing/metrics
           processors:
             - batch
           exporters:

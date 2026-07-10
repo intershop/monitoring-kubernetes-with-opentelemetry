@@ -355,9 +355,9 @@ Set name for kube-state-metrics service discovery.
     {{- $conditionForK8sNamespaceName := "" -}}
     {{- range $index, $namespace := $teamInfo.namespaces -}}
       {{- if eq $index 0 -}}
-        {{- $conditionForK8sNamespaceName = printf "%sIsMatch(log.attributes[\"k8s.namespace.name\"], \"%s\")" $conditionForK8sNamespaceName $namespace -}}
+        {{- $conditionForK8sNamespaceName = printf "%sIsMatch(resource.attributes[\"k8s.namespace.name\"], \"%s\")" $conditionForK8sNamespaceName $namespace -}}
       {{- else -}}
-        {{- $conditionForK8sNamespaceName = printf "%s or IsMatch(log.attributes[\"k8s.namespace.name\"], \"%s\")" $conditionForK8sNamespaceName $namespace -}}
+        {{- $conditionForK8sNamespaceName = printf "%s or IsMatch(resource.attributes[\"k8s.namespace.name\"], \"%s\")" $conditionForK8sNamespaceName $namespace -}}
       {{- end -}}
     {{- end -}}
 
