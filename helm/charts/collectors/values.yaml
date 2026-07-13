@@ -1262,7 +1262,8 @@ singleton:
       #     value: ""
       #   namespaces:
       #     - devteam3
-
+  k8scluster:
+    importantMetrics: []
 ### DEPENDENCY CONFIG ###
 # You can override default values for the dependency helm charts in this section
 
