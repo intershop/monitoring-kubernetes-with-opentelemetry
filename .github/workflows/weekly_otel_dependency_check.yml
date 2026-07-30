@@ -34,10 +34,9 @@ jobs:
           gh issue create \
             --repo "${{ github.repository }}" \
             --title "chore: weekly OpenTelemetry/collectors dependency check ($(date -u +%Y-%m-%d))" \
-            --assignee @copilot \
+            --assignee "@copilot:otel-dependency-upgrade" \
             --body "$(cat <<'EOF'
-          Follow the otel-dependency-upgrade custom agent instructions in
-          `.github/agents/otel-dependency-upgrade.agent.md`.
+          Run the weekly dependency check
 
           Check for new releases of the OpenTelemetry Collector, prometheus-node-exporter and
           kube-state-metrics used in `helm/charts/collectors`. Investigate changelogs for breaking
