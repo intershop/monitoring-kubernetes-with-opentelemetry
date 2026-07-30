@@ -70,11 +70,13 @@ jobs:
               agent_assignment: {
                 target_repo: $repository,
                 base_branch: "main",
-                custom_agent: "otel-dependency-upgrade"
+                custom_agent: "otel-dependency-upgrade",
+                custom_instructions: "",
+                model: ""
               }
             }' | gh api \
-              --method PATCH \
+              --method POST \
               -H "Accept: application/vnd.github+json" \
               -H "X-GitHub-Api-Version: 2022-11-28" \
-              "repos/$REPOSITORY/issues/$(cat issue_number)" \
+              "repos/$REPOSITORY/issues/$(cat issue_number)/assignees" \
               --input -
