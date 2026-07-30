@@ -1,0 +1,53 @@
+name: Weekly OTel dependency check
+
+# Kicks off the OTel Dependency Upgrade agent by filing an issue and assigning it to
+# GitHub Copilot. Assigning an issue to Copilot triggers the Copilot coding agent, which
+# picks up the task description below and follows .github/agents/otel-dependency-upgrade.agent.md.
+#
+# A .agent.md file has no scheduler of its own, so this workflow provides the weekly trigger.
+#
+# IMPORTANT: assigning an issue to Copilot requires a user-to-server token. The default
+# Actions GITHUB_TOKEN is a server-to-server token and is explicitly NOT supported for this
+# (see https://docs.github.com/en/copilot/how-tos/use-copilot-agents/cloud-agent/use-cloud-agent-via-the-api).
+# You must create a personal access token belonging to a user with write access to this repo
+# and store it as the COPILOT_ASSIGN_PAT repository/organization secret:
+#   - Fine-grained PAT: Read access to metadata; Read and write access to actions, contents,
+#     issues, and pull requests (scoped to this repository).
+#   - Classic PAT: the `repo` scope.
+
+on:
+  schedule:
+    - cron: "0 6 * * 1" # Every Monday 06:00 UTC
+  workflow_dispatch: {}
+
+permissions:
+  issues: write
+
+jobs:
+  file-upgrade-issue:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create issue and assign to Copilot
+        env:
+          GH_TOKEN: ${{ secrets.COPILOT_ASSIGN_PAT }}
+        run: |
+          gh issue create \
+            --repo "${{ github.repository }}" \
+            --title "chore: weekly OpenTelemetry/collectors dependency check ($(date -u +%Y-%m-%d))" \
+            --assignee @copilot \
+            --body "$(cat <<'EOF'
+          Follow the otel-dependency-upgrade custom agent instructions in
+          `.github/agents/otel-dependency-upgrade.agent.md`.
+
+          Check for new releases of the OpenTelemetry Collector, prometheus-node-exporter and
+          kube-state-metrics used in `helm/charts/collectors`. Investigate changelogs for breaking
+          changes/deprecations, cross-check them against the receivers/processors/exporters actually
+          configured in this chart's templates, and apply safe migrations. Skip helm/tests (unmaintained).
+
+          If multiple components have updates, bundle them into a single branch named
+          `chore/otel-upgrade-${VERSION}` and open one pull request against `main`. Follow the PR
+          description format defined in the agent file, including a "Needs reviewer attention" section
+          for any breaking change without a clear migration path, and a "Nice to have" section for
+          notable new upstream features.
+          EOF
+          )"
