@@ -5,6 +5,15 @@ name: Weekly OTel dependency check
 # picks up the task description below and follows .github/agents/otel-dependency-upgrade.agent.md.
 #
 # A .agent.md file has no scheduler of its own, so this workflow provides the weekly trigger.
+#
+# IMPORTANT: assigning an issue to Copilot requires a user-to-server token. The default
+# Actions GITHUB_TOKEN is a server-to-server token and is explicitly NOT supported for this
+# (see https://docs.github.com/en/copilot/how-tos/use-copilot-agents/cloud-agent/use-cloud-agent-via-the-api).
+# You must create a personal access token belonging to a user with write access to this repo
+# and store it as the COPILOT_ASSIGN_PAT repository/organization secret:
+#   - Fine-grained PAT: Read access to metadata; Read and write access to actions, contents,
+#     issues, and pull requests (scoped to this repository).
+#   - Classic PAT: the `repo` scope.
 
 on:
   schedule:
@@ -20,12 +29,12 @@ jobs:
     steps:
       - name: Create issue and assign to Copilot
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.COPILOT_ASSIGN_PAT }}
         run: |
           gh issue create \
             --repo "${{ github.repository }}" \
             --title "chore: weekly OpenTelemetry/collectors dependency check ($(date -u +%Y-%m-%d))" \
-            --assignee copilot \
+            --assignee @copilot \
             --body "$(cat <<'EOF'
           Follow the otel-dependency-upgrade custom agent instructions in
           `.github/agents/otel-dependency-upgrade.agent.md`.
