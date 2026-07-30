@@ -1,8 +1,7 @@
 name: Weekly OTel dependency check
 
 # Kicks off the OTel Dependency Upgrade agent by filing an issue and assigning it to
-# GitHub Copilot. Assigning an issue to Copilot triggers the Copilot coding agent, which
-# picks up the task description below and follows .github/agents/otel-dependency-upgrade.agent.md.
+# GitHub Copilot with the repository's otel-dependency-upgrade custom agent selected.
 #
 # A .agent.md file has no scheduler of its own, so this workflow provides the weekly trigger.
 #
@@ -27,15 +26,12 @@ jobs:
   file-upgrade-issue:
     runs-on: ubuntu-latest
     steps:
-      - name: Create issue and assign to Copilot
+      - name: Create issue and assign to the OTel Dependency Upgrade agent
         env:
           GH_TOKEN: ${{ secrets.COPILOT_ASSIGN_PAT }}
+          REPOSITORY: ${{ github.repository }}
         run: |
-          gh issue create \
-            --repo "${{ github.repository }}" \
-            --title "chore: weekly OpenTelemetry/collectors dependency check ($(date -u +%Y-%m-%d))" \
-            --assignee "@copilot:otel-dependency-upgrade" \
-            --body "$(cat <<'EOF'
+          issue_body="$(cat <<'EOF'
           Run the weekly dependency check
 
           Check for new releases of the OpenTelemetry Collector, prometheus-node-exporter and
@@ -50,3 +46,23 @@ jobs:
           notable new upstream features.
           EOF
           )"
+
+          jq -n \
+            --arg title "chore: weekly OpenTelemetry/collectors dependency check ($(date -u +%Y-%m-%d))" \
+            --arg body "$issue_body" \
+            --arg repository "$REPOSITORY" \
+            '{
+              title: $title,
+              body: $body,
+              assignees: ["copilot-swe-agent[bot]"],
+              agent_assignment: {
+                target_repo: $repository,
+                base_branch: "main",
+                custom_agent: "otel-dependency-upgrade"
+              }
+            }' | gh api \
+              --method POST \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "repos/$REPOSITORY/issues" \
+              --input -
