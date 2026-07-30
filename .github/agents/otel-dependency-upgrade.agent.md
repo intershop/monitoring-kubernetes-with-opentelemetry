@@ -24,6 +24,9 @@ version — only research the current recommended/compatible operator release an
 
 ## Constraints
 
+- This repository is a **fork** (`origin` = `intershop/monitoring-kubernetes-with-opentelemetry`). ONLY ever create
+  branches/commits/PRs on this fork. NEVER open a pull request against the original upstream repository this
+  was forked from, even if a tool defaults to it.
 - DO NOT modify `helm/scripts/00_deploy_operator.sh` or any operator version reference.
 - DO NOT run or "fix" anything under `helm/tests/` — the test suite is unmaintained; skip it entirely.
 - DO NOT push to `main` directly or merge the PR yourself.
@@ -72,8 +75,12 @@ version — only research the current recommended/compatible operator release an
    the new OTel Collector `appVersion` if it changed, otherwise the highest-priority changed component's new
    version. All updates from this run go on that one branch, in one or more logical commits.
 
-8. **Push & open PR**: push the branch and open a pull request targeting `main`, using `gh` CLI or GitHub
-   MCP tools (whichever is available in the environment).
+8. **Push & open PR**: push the branch to `intershop/monitoring-kubernetes-with-opentelemetry` (this fork,
+   the `origin` remote) and open a pull request targeting that same repository's `main` branch, using `gh`
+   CLI or GitHub MCP tools (whichever is available in the environment). Note that `gh pr create` defaults to
+   the parent/upstream repository when run from a fork — always pass `--repo intershop/monitoring-kubernetes-with-opentelemetry`
+   explicitly (or the MCP tool's equivalent repo parameter) so the PR is never accidentally opened against
+   upstream.
 
 ## Output Format
 
