@@ -327,6 +327,7 @@ spec:
           #- delete_key(resource.attributes, "persistentvolume")
           #- delete_key(resource.attributes, "persistentvolumeclaim")
       transform/prepare:
+        error_mode: propagate
         metric_statements:
           #- context: datapoint
           #  statements:
@@ -464,6 +465,7 @@ spec:
 
     connectors:
       routing/metrics:
+        error_mode: propagate
         # ???
         #default_pipelines:
         #  - metrics/log

@@ -149,6 +149,7 @@ spec:
             value: ${MY_POD_NAME}
             action: upsert
       transform/prepare:
+        error_mode: propagate
         metric_statements:
           - statements:
               # copy service.name to scraper.job to replace filtering functionality

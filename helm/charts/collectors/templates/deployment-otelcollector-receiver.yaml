@@ -130,6 +130,7 @@ spec:
 
     processors:
       transform/prepare:
+        error_mode: propagate
         metric_statements:
           - statements:
               # copy service.name to scraper.job to replace filtering functionality
@@ -210,6 +211,7 @@ spec:
 
     connectors:
       routing/metrics:
+        error_mode: propagate
         # ???
         #default_pipelines: []
         table:
