@@ -80,7 +80,10 @@ version — only research the current recommended/compatible operator release an
    CLI or GitHub MCP tools (whichever is available in the environment). Note that `gh pr create` defaults to
    the parent/upstream repository when run from a fork — always pass `--repo intershop/monitoring-kubernetes-with-opentelemetry`
    explicitly (or the MCP tool's equivalent repo parameter) so the PR is never accidentally opened against
-   upstream.
+   upstream. Open it as a regular (non-draft) pull request — do NOT use `--draft`. If a tool/default ends up
+   creating it as a draft anyway, explicitly mark it ready for review before finishing (e.g.
+   `gh pr ready <pr-number> --repo intershop/monitoring-kubernetes-with-opentelemetry`, or the MCP
+   equivalent). The task is not complete until the PR is in "ready for review" state.
 
 ## Output Format
 
