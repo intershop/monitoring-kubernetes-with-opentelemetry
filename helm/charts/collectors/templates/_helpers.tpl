@@ -143,19 +143,15 @@ Set name for kube-state-metrics service discovery.
   {{- if and (ne $teamInfo.ignore true) (ne (len $teamInfo.namespaces) 0) -}}
 
     {{- $conditionForK8sNamespaceName := "" -}}
-    {{- $conditionForLogNamespaceName := "" -}}
     {{- range $index, $namespace := $teamInfo.namespaces -}}
       {{- if eq $index 0 -}}
         {{- $conditionForK8sNamespaceName = printf "%sIsMatch(resource.attributes[\"k8s.namespace.name\"], \"%s\")" $conditionForK8sNamespaceName $namespace -}}
-        {{- $conditionForLogNamespaceName = printf "%sIsMatch(log.attributes[\"k8s.namespace.name\"], \"%s\")" $conditionForLogNamespaceName $namespace -}}
       {{- else -}}
         {{- $conditionForK8sNamespaceName = printf "%s or IsMatch(resource.attributes[\"k8s.namespace.name\"], \"%s\")" $conditionForK8sNamespaceName $namespace -}}
-        {{- $conditionForLogNamespaceName = printf "%s or IsMatch(log.attributes[\"k8s.namespace.name\"], \"%s\")" $conditionForLogNamespaceName $namespace -}}
       {{- end -}}
     {{- end -}}
 
     {{- $_ := set $teamInfo "filter" $conditionForK8sNamespaceName -}}
-    {{- $_ := set $teamInfo "logFilter" $conditionForLogNamespaceName -}}
   {{- end }}
 {{- end }}
 
@@ -357,15 +353,19 @@ Set name for kube-state-metrics service discovery.
   {{- if and (ne $teamInfo.ignore true) (ne (len $teamInfo.namespaces) 0) -}}
 
     {{- $conditionForK8sNamespaceName := "" -}}
+    {{- $conditionForLogNamespaceName := "" -}}
     {{- range $index, $namespace := $teamInfo.namespaces -}}
       {{- if eq $index 0 -}}
         {{- $conditionForK8sNamespaceName = printf "%sIsMatch(resource.attributes[\"k8s.namespace.name\"], \"%s\")" $conditionForK8sNamespaceName $namespace -}}
+        {{- $conditionForLogNamespaceName = printf "%sIsMatch(log.attributes[\"k8s.namespace.name\"], \"%s\")" $conditionForLogNamespaceName $namespace -}}
       {{- else -}}
         {{- $conditionForK8sNamespaceName = printf "%s or IsMatch(resource.attributes[\"k8s.namespace.name\"], \"%s\")" $conditionForK8sNamespaceName $namespace -}}
+        {{- $conditionForLogNamespaceName = printf "%s or IsMatch(log.attributes[\"k8s.namespace.name\"], \"%s\")" $conditionForLogNamespaceName $namespace -}}
       {{- end -}}
     {{- end -}}
 
     {{- $_ := set $teamInfo "filter" $conditionForK8sNamespaceName -}}
+    {{- $_ := set $teamInfo "logFilter" $conditionForLogNamespaceName -}}
   {{- end }}
 {{- end }}
 
