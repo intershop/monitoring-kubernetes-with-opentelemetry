@@ -218,6 +218,8 @@ spec:
             enabled: true
           k8s.pod.volume.usage:
             enabled: true
+          k8s.pod.uptime:
+            enabled: true
 
       {{- with .Values.daemonset.filelog }}
       filelog: {{ toYaml . | nindent 8 }}
