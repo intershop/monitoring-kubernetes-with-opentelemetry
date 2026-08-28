@@ -85,6 +85,12 @@ version — only research the current recommended/compatible operator release an
    `gh pr ready <pr-number> --repo intershop/monitoring-kubernetes-with-opentelemetry`, or the MCP
    equivalent). The task is not complete until the PR is in "ready for review" state.
 
+   After your final commit/push, always call the PR-update mechanism (`update_pull_request`) one more
+   time with the complete, final PR description in the required format below. Don't rely on the
+   description passed to intermediate commit/progress calls — the platform's auto-generated PR body
+   (based on `.github/pull_request_template.md`) can overwrite it on every push. Setting the final PR
+   body is an explicit, separate last step, not a byproduct of the last commit.
+
 ## Output Format
 
 Ignore the repo's `.github/pull_request_template.md` for this PR — it doesn't fit an automated dependency
