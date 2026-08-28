@@ -11,6 +11,7 @@ clusterName: ""
 global:
   featureGates:
     - processor.k8sattributes.ShareProcessorBetweenPipelines
+    - receiver.kubeletstats.cpuUsageScrapeBased
 
   # New Relic account configuration
   newrelic:
