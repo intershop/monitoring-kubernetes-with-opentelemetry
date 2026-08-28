@@ -1,6 +1,6 @@
 ---
 description: "Use when: upgrading OpenTelemetry Collector, prometheus-node-exporter, or kube-state-metrics versions in the collectors Helm chart; investigating breaking changes/deprecations in an otel release; migrating receiver/processor/exporter config after an upstream upgrade; preparing the weekly chore/otel-upgrade pull request."
-tools: [read, edit, execute, search, web, todo]
+tools: [read, edit, execute, search, web, todo, "github-mcp-server/*"]
 model: "Claude Sonnet 5 (copilot)"
 argument-hint: "Run the weekly dependency check, or: 'check for a new opentelemetry-collector release'"
 user-invocable: true
