@@ -418,6 +418,20 @@ daemonset:
           - "get"
           - "list"
           - "watch"
+      # Only needed if you are using extra_metadata_labels or
+      # are collecting the request/limit utilization metrics
+      - apiGroups: [""]
+        resources: ["nodes/pods"]
+        verbs: ["get"]
+
+      # Only needed if you are using k8s_api_config to collect
+      # detailed volume metadata from PersistentVolumeClaims
+      - apiGroups: [""]
+        resources: ["persistentvolumeclaims"]
+        verbs: ["get"]
+      - apiGroups: [""]
+        resources: ["persistentvolumes"]
+        verbs: ["get"]
 
   clusterRoleBinding:
     # Annotations to add to the clusterRoleBinding

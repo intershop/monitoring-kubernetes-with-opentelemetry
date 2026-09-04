@@ -199,6 +199,10 @@ spec:
         endpoint: "${MY_NODE_NAME}:10250"
         insecure_skip_verify: {{ .Values.daemonset.kubeletStats.insecureSkipVerify }}
         metric_groups: {{ .Values.daemonset.kubeletStats.metricGroups | toYaml | nindent 10 }}
+        extra_metadata_labels:
+          - k8s.volume.type
+        k8s_api_config:
+          auth_type: serviceAccount
         metrics:
           k8s.pod.cpu_limit_utilization:
             enabled: true
